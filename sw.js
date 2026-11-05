@@ -1,6 +1,6 @@
 // やさいっこ冒険村 Service Worker
 // ネット優先：つながっていれば毎回最新版を取りに行き、オフラインのときだけ保存した版を使う。
-const VERSION = '20261105115808';
+const VERSION = '20261105120544';
 const CACHE = 'yasaikko-village-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 

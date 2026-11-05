@@ -1582,7 +1582,7 @@ function menuIc(k){
 function openMenu(){
   panelKind='menu';
   const on={bgm:AU.on.bgm,sfx:AU.on.sfx,res:S.opt.res,auto:S.opt.auto};
-  const html='<p class="lead">村ランク「'+esc(RANKS[S.rank].n)+'」・'+esc(dateText())+'</p><div class="menu">'+MENU.map(([k,n,s])=>'<button type="button" class="mi" data-m="'+k+'"'+(k in on?' aria-pressed="'+on[k]+'"':'')+'><canvas width="14" height="14"></canvas>'+n+'<span class="sub">'+(k in on?(on[k]?'オン':'オフ'):s)+'</span></button>').join('')+'</div>';
+  const html='<p class="lead">村ランク「'+esc(RANKS[S.rank].n)+'」・'+esc(dateText())+(window.YV_BUILD?'<br>バージョン '+esc(String(window.YV_BUILD).slice(4,8).replace(/^(..)/,'$1/')+' '+String(window.YV_BUILD).slice(8,12).replace(/^(..)/,'$1:')):'')+'</p><div class="menu">'+MENU.map(([k,n,s])=>'<button type="button" class="mi" data-m="'+k+'"'+(k in on?' aria-pressed="'+on[k]+'"':'')+'><canvas width="14" height="14"></canvas>'+n+'<span class="sub">'+(k in on?(on[k]?'オン':'オフ'):s)+'</span></button>').join('')+'</div>';
   openPanel('メニュー',html);
   $('#pbody').querySelectorAll('.mi').forEach(b=>{paint(b.querySelector('canvas'),()=>menuIc(b.dataset.m));b.onclick=()=>{sfx('tap');const m=b.dataset.m;
     if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout')openScout();
@@ -1681,18 +1681,21 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105115808',shown=false;
+  var BUILD='20261105120544',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
     fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
       if(v&&v.build&&v.build!==BUILD){
-        if(first&&!sessionStorage.getItem('yv-reloaded-'+v.build)){sessionStorage.setItem('yv-reloaded-'+v.build,'1');location.reload();return}
+        if(first&&!sessionStorage.getItem('yv-reloaded-'+v.build)){sessionStorage.setItem('yv-reloaded-'+v.build,'1');sessionStorage.setItem('yv-updated','1');location.reload();return}
         show();
       }
     }).catch(function(){});
   }
-  addEventListener('load',function(){check(true)});
+  window.YV_BUILD=BUILD;
+  addEventListener('load',function(){
+    try{if(sessionStorage.getItem('yv-updated')){sessionStorage.removeItem('yv-updated');var b=document.getElementById('upd');b.textContent='新しいバージョンに更新しました';b.hidden=false;b.onclick=function(){b.hidden=true};setTimeout(function(){b.hidden=true},3500)}}catch(e){}
+    check(true)});
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false)});
   addEventListener('pageshow',function(e){if(e.persisted)check(false)});
   if('serviceWorker' in navigator){
