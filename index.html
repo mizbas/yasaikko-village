@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>やさいっこ冒険村</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#e47538">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="冒険村">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
@@ -1462,5 +1470,21 @@ start();
 })();
 </script>
 
+<div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
+<script>
+(function(){
+  if(!('serviceWorker' in navigator))return;
+  var hadCtrl=!!navigator.serviceWorker.controller,shown=false;
+  function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(hadCtrl)show();hadCtrl=true});
+  addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      function check(){reg.update().catch(function(){})}
+      setInterval(check,30*60*1000);
+      document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+    }).catch(function(){});
+  });
+})();
+</script>
 </body>
 </html>
