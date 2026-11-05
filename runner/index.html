@@ -782,27 +782,46 @@ function starArc(x0,x1,y0,h){const n=Math.max(3,Math.floor((x1-x0)/16));for(let 
 function maybeItem(x,y){const r=Math.random();if(r<.12){const ks=['magnet','bridge','giant','fly','heart'];R.items.push({k:ks[rnd(ks.length)],x,y})}else if(r<.16)R.coins_.push({x,y,v:15,bag:1})}
 const coinChance=()=>Math.min(.85,.5*(CHARAS[R.ch].coins||1));
 function genChunk(){
+  // 配置ルール：着地直後(runIn)と次の穴の手前(runOut)には敵を置かない／穴は「1段で余裕」か「2段がはっきり必要」のどちらか
   const d=diff(),x=R.genX,sp=baseSpeed(),lastY=R.ground.length?R.ground[R.ground.length-1].y:GY,pick=Math.random();
-  const gapMax=Math.min(sp*.6,sp*.5+40*d+30);
+  const J1=sp*.58,runIn=Math.max(60,sp*.42),runOut=Math.max(70,sp*.55),hop=Math.max(120,J1+34);
+  const gap1=()=>rr(36,Math.max(44,J1*.6)),gap2=()=>rr(J1*1.05,J1*1.32);
+  const pickGap=()=>Math.random()<.35+.4*d?gap2():gap1();
   const enemyK=()=>{const st=R.stage;return[['slime','mush'],['mush','slime'],['rock','slime'],['slime','bird'],['rock','mush']][st][rnd(2)]};
-  if(pick<.22){const L=rr(180,320);R.ground.push({x0:x,x1:x+L,y:lastY});if(Math.random()<coinChance())coinRow(x+30,lastY-12,Math.floor((L-60)/13));else if(Math.random()<.55)starShape(x+40,lastY-14,L-80);else starLine(x+30,x+L-30,lastY-14,16);if(Math.random()<.5)maybeItem(x+L/2,lastY-40);
-    if(d>.12&&Math.random()<.6){const k=enemyK();R.enemies.push({k,x:x+L*.6,y:lastY,vx:k==='mush'?-30:0,x0:x+20,x1:x+L-20})}R.genX=x+L}
-  else if(pick<.46){const gap=rr(40,Math.max(55,gapMax*(.45+.5*d))),L=rr(110,220);
-    const ny=clamp(lastY+(Math.random()<.5?0:rnd(3)*16-16),84,128);const nj=(gap+30>sp*.6||ny<lastY-24)?2:1;starPath(x-22,lastY,sp,nj,ny);R.ground.push({x0:x+gap,x1:x+gap+L,y:ny,gapFrom:x});if(Math.random()<coinChance())coinRow(x+gap+30,ny-12,Math.floor((L-50)/13));else starLine(x+gap+30,x+gap+L-20,ny-14,18);
-    if(d>.3&&Math.random()<.4)R.enemies.push({k:'spike',x:x+gap+L*.5,y:ny,w:12+rnd(2)*6});R.genX=x+gap+L}
-  else if(pick<.62){const n=2+rnd(2+Math.round(d*2));let px=x+rr(30,50),py=lastY-22;
-    for(let i=0;i<n;i++){const L=rr(50,90);py=clamp(py+(rnd(3)-1)*(Math.random()<.5?12:18),64,108);R.plats.push({x0:px,x1:px+L,y:py});if(Math.random()<coinChance()*.7)coinRow(px+8,py-12,Math.floor((L-16)/13));else starLine(px+8,px+L-8,py-14,14);if(i===1&&Math.random()<.5)maybeItem(px+L/2,py-28);
-      if(d>.25&&Math.random()<.35)R.enemies.push({k:'slime',x:px+L/2,y:py,vx:0});px+=L+rr(40,Math.max(50,gapMax*.6))}
-    const L=rr(120,220);R.ground.push({x0:px,x1:px+L,y:lastY,gapFrom:x});R.genX=px+L}
-  else if(pick<.78){const L=rr(240,380);R.ground.push({x0:x,x1:x+L,y:lastY});let ex=x+70;
-    while(ex<x+L-60){const r=Math.random();
-      if(r<.18&&d>.08){for(let i=0;i<2+rnd(2);i++)R.enemies.push({k:'egg',x:ex+i*20,y:lastY});ex+=30}
-      else if(r<.33)R.enemies.push({k:'spike',x:ex,y:lastY,w:12+rnd(1+Math.round(d*2))*6});
-      else if(r<.66){const k=enemyK();R.enemies.push({k,x:ex,y:lastY,vx:k==='mush'?-25:0,x0:x+10,x1:x+L-10})}
-      else R.enemies.push({k:Math.random()<.6?'bat':'bird',x:ex,y:lastY-rr(30,56),by:lastY-rr(30,56),ph:Math.random()*6});
-      starPath(ex-sp*.34,lastY,sp,1);if(Math.random()<coinChance()*.5)coinRow(ex+sp*.3,lastY-12,5);ex+=rr(110,170)-d*20}R.genX=x+L}
+  const flier=(ex,gy)=>{const k=Math.random()<.6?'bat':'bird',y=gy-44;R.enemies.push({k,x:ex,y,by:y,ph:Math.random()*6});starLine(ex-40,ex+40,gy-12,14)};
+  if(pick<.22){const L=rr(200,320);R.ground.push({x0:x,x1:x+L,y:lastY});
+    const hasE=d>.12&&Math.random()<.6,ex=x+runIn+rr(0,Math.max(1,L-runIn-runOut-hop*.3));
+    if(Math.random()<coinChance())coinRow(x+30,lastY-12,Math.floor((L-60)/13));else if(!hasE&&Math.random()<.55)starShape(x+40,lastY-14,L-80);else starLine(x+30,x+L-30,lastY-14,16);
+    if(hasE){const k=enemyK();R.enemies.push({k,x:ex,y:lastY,vx:k==='mush'?-18:0,x0:ex-18,x1:ex+18});starPath(ex-J1*.5,lastY,sp,1)}
+    else if(Math.random()<.5)maybeItem(x+L/2,lastY-40);
+    R.genX=x+L}
+  else if(pick<.46){const gap=pickGap(),dbl=gap>J1*.8,L=rr(130,230);
+    let ny=lastY;if(Math.random()<.5){ny=clamp(lastY+(Math.random()<.5||dbl?16:-14),84,128)}
+    starPath(x-(dbl?16:J1*.2),lastY,sp,dbl||ny<lastY-20?2:1,ny);R.ground.push({x0:x+gap,x1:x+gap+L,y:ny,gapFrom:x});
+    const sx=x+gap+Math.max(runIn,J1*.7);
+    if(d>.3&&L>=170&&Math.random()<.4&&sx<x+gap+L-runOut){R.enemies.push({k:'spike',x:sx,y:ny,w:12+rnd(2)*6});starPath(sx-J1*.45,ny,sp,1)}
+    else if(Math.random()<coinChance())coinRow(x+gap+30,ny-12,Math.floor((L-50)/13));else starLine(x+gap+30,x+gap+L-20,ny-14,18);
+    R.genX=x+gap+L}
+  else if(pick<.62){const n=2+rnd(2+Math.round(d*2));let px=x+rr(36,Math.max(44,J1*.5)),py=lastY-rr(16,28),prevY=lastY;
+    for(let i=0;i<n;i++){const L=rr(76,120);if(i>0)py=py+(rnd(3)-1)*rr(10,18);if(prevY-py>30)py=prevY-30;py=clamp(py,64,108);prevY=py;
+      R.plats.push({x0:px,x1:px+L,y:py});const onE=false;
+      if(Math.random()<coinChance()*.7)coinRow(px+8,py-12,Math.floor((L-16)/13));else starLine(px+8,px+L-(onE?30:8),py-14,14);if(i===1&&Math.random()<.5)maybeItem(px+L/2,py-30);
+      if(onE)R.enemies.push({k:'slime',x:px+L-14,y:py,vx:0});
+      px+=L+rr(32,Math.max(42,J1*.42))}
+    const L=rr(140,220),gy=clamp(Math.max(lastY,prevY+rr(0,20)),84,128);R.ground.push({x0:px,x1:px+L,y:gy,gapFrom:x});R.genX=px+L}
+  else if(pick<.78){const L=rr(300,440);R.ground.push({x0:x,x1:x+L,y:lastY});let ex=x+runIn+10;
+    while(ex<x+L-runOut-20){const r=Math.random();let w=14;
+      if(r<.18&&d>.08){const n=2+rnd(2);for(let i=0;i<n;i++)R.enemies.push({k:'egg',x:ex+i*18,y:lastY});w=(n-1)*18+14;starPath(ex-J1*.38,lastY,sp,1)}
+      else if(r<.36){const sw=12+rnd(1+Math.round(d*2))*6;R.enemies.push({k:'spike',x:ex-sw/2,y:lastY,w:sw});w=sw;starPath(ex-J1*.45,lastY,sp,1)}
+      else if(r<.7){const k=enemyK();R.enemies.push({k,x:ex,y:lastY,vx:k==='mush'?-18:0,x0:ex-16,x1:ex+16});starPath(ex-J1*.45,lastY,sp,1)}
+      else flier(ex,lastY);
+      if(Math.random()<coinChance()*.4)coinRow(ex+J1*.55,lastY-12,4);
+      ex+=w+hop+rr(0,60)}
+    R.genX=x+L}
   else if(pick<.9){const steps=2+rnd(3);let gx=x,gy=lastY;const up=lastY>96;
-    for(let i=0;i<steps;i++){const L=rr(70,120);gy=clamp(gy+(up?-1:1)*rr(10,22),70,128);const gp=Math.random()<.3+d*.3?rr(30,Math.max(40,gapMax*.5)):0;R.ground.push({x0:gx+gp,x1:gx+gp+L,y:gy,gapFrom:gp?gx:undefined});starLine(gx+gp+16,gx+gp+L-10,gy-14,16);gx+=gp+L}R.genX=gx}
+    for(let i=0;i<steps;i++){const L=rr(80,130),ny=clamp(gy+(up?-1:1)*rr(10,20),70,128);const gp=(!up||ny>=gy)&&Math.random()<.3+d*.3?rr(30,Math.max(40,J1*.45)):0;
+      if(!gp&&ny<gy&&gy-ny>15){/* 歩いて登れない段差は低くする */}
+      gy=gp?ny:(ny<gy?Math.max(ny,gy-15):ny);R.ground.push({x0:gx+gp,x1:gx+gp+L,y:gy,gapFrom:gp?gx:undefined});starLine(gx+gp+16,gx+gp+L-10,gy-14,16);gx+=gp+L}R.genX=gx}
   else{const L=rr(260,360);R.ground.push({x0:x,x1:x+L,y:lastY});for(let i=0;i<3;i++){if(i===1&&Math.random()<coinChance())coinRow(x+30,lastY-14-i*18,Math.floor((L-60)/13));else starLine(x+30+i*6,x+L-30,lastY-14-i*18,14)}if(Math.random()<.5)R.stars.push({x:x+L*.5,y:lastY-64,k:'w',ph:0});maybeItem(x+L-60,lastY-30);R.genX=x+L}
 }
 
@@ -862,7 +881,7 @@ function update(dt){
     for(const s of [...R.ground,...R.plats]){if(R.x+5>=s.x0&&R.x-5<=s.x1&&R.vy>=0&&prevY<=s.y+1&&R.y>=s.y){R.y=s.y;R.vy=0;R.onG=true;R.jumps=0;break}}
     // cloud bridge
     if(!R.onG&&R.it.bridge>0&&R.vy>=0&&prevY<=GY+1&&R.y>=GY){R.y=GY;R.vy=0;R.onG=true;R.jumps=0}
-    for(const s of R.ground){if(R.x+6>s.x0&&R.x-6<s.x0+2&&R.y>s.y+1&&R.y<s.y+40){if(R.y-s.y<=16){R.y=s.y;R.vy=0;R.onG=true;R.jumps=0}else{hurt();R.y=s.y;R.vy=-200;R.onG=false;R.jumps=1}}}
+    for(const s of R.ground){if(R.x+6>s.x0&&R.x-6<s.x0+2&&R.y>s.y+1&&R.y<s.y+40){if(R.y-s.y<=16){R.y=s.y;R.vy=0;R.onG=true;R.jumps=0}else{R.hk='wall';hurt();R.y=s.y;R.vy=-200;R.onG=false;R.jumps=1}}}
     if(R.y>H+30){
       if(R.revive>0){R.revive--;sfx('item');toast('たすけてもらった！');R.y=GY-50;R.vy=-120;R.inv=2;R.it.bridge=Math.max(R.it.bridge,3)}
       else{die('pit');return}
@@ -891,7 +910,7 @@ function update(dt){
   R.enemies=R.enemies.filter(e=>{if(e.x<R.x-W||e.dead>.5)return false;if(e.dead){e.dead+=dt;e.x+=e.vx2*dt;e.y+=e.vy2*dt;e.vy2+=400*dt;return true}
     if(e.flash>0)e.flash-=dt;
     if(e.k==='mush'&&e.vx){e.x+=e.vx*dt;if(e.x0!=null&&(e.x<e.x0||e.x>e.x1))e.vx*=-1}
-    if(e.k==='bat'){e.ph+=dt*3;e.y=e.by+Math.sin(e.ph)*14;e.x-=10*dt}
+    if(e.k==='bat'){e.ph+=dt*3;e.y=e.by+Math.sin(e.ph)*4;e.x-=10*dt}
     if(e.k==='meteor'){e.x+=e.vx*dt;if(Math.random()<.6)R.parts.push({x:e.x+6,y:e.y+rr(-3,3),vx:rr(40,90),vy:rr(-10,10),t:0,life:.3,c:['#ff8a2a','#ffd04a','#ff4a1a'][rnd(3)],r:1.6})}
     if(e.k==='bird'){e.x-=60*dt*(1+diff()*.5);e.y=e.by+Math.sin(R.t*4+e.x*.05)*4}
     const ew=e.k==='spike'?e.w:e.k==='meteor'?11:14,eh=e.k==='spike'?6:e.k==='rock'?11:e.k==='egg'?13:e.k==='meteor'?9:10;
@@ -900,7 +919,7 @@ function update(dt){
     if(pr>ex0&&pl<ex1&&pb>ey0&&pt<ey1){
       if(invul){smash(e);}
       else if(e.k!=='spike'&&e.k!=='meteor'&&R.vy>0&&pb-ey0<9){e.dead=.01;e.vx2=0;e.vy2=40;R.vy=-260;R.jumps=1;const v=100*(CHARAS[R.ch].mon||1)*scoreMul();R.score+=v;R.stomps++;sfx('stomp');float(e.x,e.y-14,'+'+fmt(v),'#fff');sparkle(e.x,e.y-6,'#fff')}
-      else hurt()}
+      else{R.hk=e.k;hurt()}}
     // pet attack
     if(Pt.atk&&!e.dead&&e.k!=='spike'&&e.k!=='meteor'&&e.x-R.x<70&&e.x>R.x){smash(e)}
     return true});
@@ -1161,7 +1180,7 @@ window.__sr={get R(){return R},get SV(){return SV},startRun:()=>{newRun();state=
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:12px;padding:8px 16px;font-family:'Mochiy Pop One',sans-serif;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105153210',shown=false;
+  var BUILD='20261105155000',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   function check(first){
     fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
