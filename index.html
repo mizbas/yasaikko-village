@@ -1137,7 +1137,7 @@ function drawWorld(t){
   if(raid)raid.mons.forEach(m=>{if(m.hp>0)items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,Math.round(sxOf(m.x,m.y)),Math.round(syOf(m.x,m.y)),t,m.flash>0,m.dir,m.hp/m.maxHp)})});
   items.sort((p,q)=>p.z-q.z).forEach(i=>i.f());
   if(cursor){const sx=(cursor.c-cursor.r)*HW,sy=(cursor.c+cursor.r)*HH,on=Math.floor(t*4)%2;g.drawImage(hlSpr('#ffe040'),sx-HW,sy);if(on)g.drawImage(hlSpr('#ffffff'),sx-HW,sy);g.globalAlpha=.35;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),sx-HW,sy);g.globalAlpha=1;
-    const b=Math.round(Math.abs(Math.sin(t*5))*3),ay=sy-12-b;P(sx-3,ay,7,4,'#ffffff');P(sx-2,ay+4,5,1,'#ffffff');P(sx-1,ay+5,3,1,'#ffffff');P(sx,ay+6,1,1,'#ffffff');P(sx-2,ay+1,5,2,'#ff7a2a');P(sx-1,ay+3,3,1,'#ff7a2a');P(sx,ay+4,1,1,'#ff7a2a')}
+    const cb=inMap(cursor.c,cursor.r)&&S.grid[cursor.r][cursor.c],hi=cb&&!BLD[cb.b].road?(BLD[cb.b].deco?24:33):12;const b=Math.round(Math.abs(Math.sin(t*5))*3),ay=sy-hi-b;P(sx-3,ay,7,4,'#ffffff');P(sx-2,ay+4,5,1,'#ffffff');P(sx-1,ay+5,3,1,'#ffffff');P(sx,ay+6,1,1,'#ffffff');P(sx-2,ay+1,5,2,'#ff7a2a');P(sx-1,ay+3,3,1,'#ff7a2a');P(sx,ay+4,1,1,'#ff7a2a')}
   if(moving){const sx=(moving.c-moving.r)*HW,sy=(moving.c+moving.r)*HH;g.globalAlpha=Math.floor(t*4)%2?.6:.3;g.drawImage(spr('fillb',28,14,()=>diam(14,7,14,'#46c8ff')),sx-HW,sy);g.globalAlpha=1;g.drawImage(hlSpr('#46c8ff'),sx-HW,sy)}
   if(sel&&sel.k==='b'&&Math.floor(t*3)%2){g.drawImage(hlSpr('#46c8ff'),(sel.c-sel.r)*HW-HW,(sel.c+sel.r)*HH)}
   if(sel&&sel.k==='a'){const a=advById(sel.id);if(a&&inVillage(a)&&a.state!=='in'){const sx=Math.round(sxOf(a.x,a.y)),sy=Math.round(syOf(a.x,a.y)),b=Math.floor(t*4)%2;P(sx-1,sy-22-b,3,2,'#ff4a4a');P(sx,sy-20-b,1,1,'#ff4a4a')}}
@@ -1329,7 +1329,7 @@ let panelLive=null,liveAcc=0,panelKind=null;
 function openPanel(title,html,live,tabs){
   $('#ptitle').textContent=title;const tb=$('#ptabs');
   if(tabs){tb.hidden=false;tb.innerHTML=tabs}else{tb.hidden=true;tb.innerHTML=''}
-  $('#panel').classList.toggle('low',panelKind==='build'&&!!buildAt);
+  $('#panel').classList.toggle('low',(panelKind==='build'&&!!buildAt)||panelKind==='binfo');
   $('#pbody').innerHTML=html;$('#panel').hidden=false;panelLive=live||null;$('#bR').textContent='戻る';if(live)live();
 }
 function closePanel(){$('#panel').hidden=true;cursor=null;panelLive=null;panelKind=null;$('#bR').textContent='メニュー';if(sel&&sel.k==='b')sel=null}
@@ -1598,7 +1598,7 @@ function tap(clientX,clientY){
   const hitA=S.advs.filter(a=>inVillage(a)&&a.state!=='in').map(a=>({a,sx:sxOf(a.x,a.y),sy:syOf(a.x,a.y)})).filter(o=>Math.abs(o.sx-ax)<6&&ay>o.sy-14&&ay<o.sy+3).sort((p,q)=>(q.a.x+q.a.y)-(p.a.x+p.a.y))[0];
   if(hitA){sfx('tap');selectAdv(hitA.a.id);return}
   const bs=allB().sort((p,q)=>(q.c+q.r)-(p.c+p.r));
-  for(const b of bs){const sx=(b.c-b.r)*HW,sy=(b.c+b.r)*HH;if(Math.abs(ax-sx)<12&&ay>sy-22&&ay<sy+13){sfx('tap');cursor=null;openBuildingInfo(b.c,b.r);return}}
+  for(const b of bs){const sx=(b.c-b.r)*HW,sy=(b.c+b.r)*HH;if(Math.abs(ax-sx)<12&&ay>sy-22&&ay<sy+13){sfx('tap');cursor={c:b.c,r:b.r};focusTile(b.c,b.r,.3);openBuildingInfo(b.c,b.r);return}}
   for(const id of Object.keys(CAVE)){const cp=CAVE[id],d=DUN.find(x=>x.id===id);if(d.rank>S.rank)continue;const sx=(cp.c-cp.r)*HW,sy=(cp.c+cp.r)*HH;if(Math.abs(ax-sx)<16&&ay>sy-34&&ay<sy+14){sfx('tap');openExp(id);return}}
   if(c===GATE.c&&(r===GATE.r||r===GATE.r-1)){sfx('tap');openDun();return}
   clearSel();
@@ -1650,7 +1650,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105114237',shown=false;
+  var BUILD='20261105114556',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
