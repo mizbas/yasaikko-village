@@ -56,7 +56,9 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
 .fame .num{position:absolute;right:4px;top:30px;width:92px;text-align:right;font-size:18px;color:#fff;--oc:#10205a}
 .fame .fb{position:absolute;right:4px;bottom:4px;width:96px;height:9px;background:#10205a;border:2px solid #fff;border-radius:2px;overflow:hidden}
 .fame .fb u{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,#ffe040 0 3px,#ffb020 3px 5px)}
-.placebar{position:absolute;left:8px;right:8px;top:118px;z-index:6;display:flex;justify-content:center}
+.placebar{position:absolute;left:8px;right:8px;top:118px;z-index:6;display:flex;justify-content:center;pointer-events:none}
+.placebar div{pointer-events:none;opacity:.94}
+.placebar button{pointer-events:auto}
 .placebar div{display:flex;align-items:center;gap:10px;background:#fff8e6;border:3px solid #c0742a;border-radius:6px;padding:5px 8px 5px 12px;font-size:14px;box-shadow:0 3px 0 #0005}
 .placebar button{border:2px solid #8a3e12;background:#f6c98a;border-radius:6px;padding:2px 10px}
 #toast{position:absolute;left:8px;right:8px;top:118px;z-index:7;display:flex;justify-content:center;pointer-events:none}
@@ -974,7 +976,7 @@ function drawBuilding(type,lv,v,se){
   if(type==='tree'){const L=LEAF[se];P(cx-1,cy-9,3,9,'#7a4f28');P(cx+1,cy-9,1,9,'#5a3a1c');sh();disc(cx,cy-16,7,L[0]);disc(cx-3,cy-13,5,L[0]);disc(cx+3,cy-13,5,shade(L[0],-.15));disc(cx-2,cy-18,4,L[1]);P(cx-4,cy-19,2,1,shade(L[1],.3));if(L[2])for(let i=0;i<5;i++){const h=hash(v,i);P(cx-6+h%12,cy-22+(h>>4)%10,1,1,L[2])}return}
   if(type==='flower'){diam(cx,cy,10,'#8a5a35');diam(cx,cy-1,9,'#a8733f');const cols=['#f27a9a','#ffd34a','#ffffff','#b99af2','#ff8a4a'];for(let i=0;i<9;i++){const h=hash(v+i,7),x=cx-7+h%14,y=cy-4+(h>>4)%5;P(x,y,1,2,'#3f8a30');P(x-1,y-1,3,1,cols[i%5]);P(x,y-2,1,3,cols[i%5])}return}
   if(type==='field'){diam(cx,cy,13,'#7a4a2a');diam(cx,cy-1,12,'#9a6438');for(let k=-2;k<=2;k++){for(let j=-4;j<=4;j++){const x=cx+j*2+k*2,y=cy-1+k*2-Math.abs(j)*0;if(Math.abs(x-cx)/2+Math.abs(y-cy+1)>5)continue;P(x,y,1,1,'#6e4428');if((j+k)%2===0){P(x,y-2,1,2,'#5cb848');P(x-1,y-2,1,1,'#7cd85a')}}}return}
-  if(d.road){g.drawImage(tileSpr(['dirt','stone','brick'][d.road-1],v%4,se),1,AY);return}
+  if(d.road){g.drawImage(tileSpr(['road','stone','brick'][d.road-1],v%4,se),1,AY);return}
   if(type==='palm'){g.drawImage(palmSpr(v),3,AY-25);return}
   if(type==='candy'){sh();P(cx,cy-18,1,18,'#ffffff');P(cx+1,cy-18,1,18,'#e8e0e8');disc(cx,cy-23,7,'#ff8ac0');disc(cx,cy-23,5,'#ffffff');disc(cx,cy-23,3,['#8ad8a8','#ffd040','#ff8ac0'][v%3]);disc(cx,cy-23,1,'#ffffff');return}
   if(type==='parasol'){sh();diam(cx+3,cy+1,6,'#5ab0f0');diam(cx+3,cy,5,'#8ad0ff');P(cx,cy-17,1,17,'#e8e0d0');roofP(cx,cy-17,9,5,'#e84a4a',true);return}
@@ -1110,7 +1112,7 @@ function drawWorld(t){
   const vis=(sx,sy,m)=>sx>ox-m&&sx<ox+VW+m&&sy>oy-m-30&&sy<oy+VH+m;
   // ground
   for(let r=-15;r<GH+6;r++)for(let c=-6;c<GW+8;c++){const sx=(c-r)*HW,sy=(c+r)*HH;if(!vis(sx,sy,30))continue;
-    const cl=inMap(c,r)&&S.grid[r][c],rd=cl&&BLD[cl.b].road;const k=rd?['dirt','stone','brick'][rd-1]:isRoad(c,r)?'road':inMap(c,r)?'in':'out';g.drawImage(tileSpr(k,hash(c,r)%4,se),sx-HW,sy)}
+    const cl=inMap(c,r)&&S.grid[r][c],rd=cl&&BLD[cl.b].road;const k=rd?['road','stone','brick'][rd-1]:isRoad(c,r)?'road':inMap(c,r)?'in':'out';g.drawImage(tileSpr(k,hash(c,r)%4,se),sx-HW,sy)}
   // placement highlights
   if(placing||moving){const on=Math.floor(t*3)%2;for(let r=0;r<GH;r++)for(let c=0;c<GW;c++){if(isRoad(c,r)||S.grid[r][c])continue;const fx=(c-r)*HW-HW,fy=(c+r)*HH;g.globalAlpha=on?.32:.18;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),fx,fy);g.globalAlpha=on?1:.6;g.drawImage(hlSpr('#fff070'),fx,fy);g.globalAlpha=1}}
   // objects
@@ -1368,10 +1370,16 @@ function doBuild(k){
   if(!unlocked(k)){if(!hasNeed(k)){sfx('no');toast('アイテムが足りない','ダンジョンで「'+needText(k)+'」を集めよう');return}
     Object.keys(d.need).forEach(i=>S.items[i]-=d.need[i]);S.unl[k]=true;sfx('rank');toast('研究完了！','「'+d.n+'」が建てられるようになった');log(d.n+'の研究が完了した');renderBuild();buildSel=k;showBuildDetail();save();return}
   if(S.gold<d.cost){sfx('no');toast('お金が足りない','あと '+fmt(d.cost-S.gold)+'G 必要です');return}
-  if(buildAt){build(k,buildAt.c,buildAt.r);closePanel();if(d.road&&S.gold>=d.cost){placing=k;$('#placet').textContent=d.n+'をしく場所を続けてタップ';$('#placebar').hidden=false}}
-  else{closePanel();placing=k;$('#placet').textContent=d.n+'（'+fmt(d.cost)+'G）を'+(d.road?'しく場所を続けてタップ':'建てる空き地をタップ');$('#placebar').hidden=false}
+  if(buildAt){const at=buildAt;build(k,at.c,at.r);closePanel();if(d.road){focusTile(at.c,at.r,.5);placing=k;$('#placet').textContent=d.n+'をしく場所を続けてタップ（もう一度タップで消す）';$('#placebar').hidden=false}}
+  else{closePanel();placing=k;$('#placet').textContent=d.n+'（'+fmt(d.cost)+'G）を'+(d.road?'しく場所を続けてタップ（もう一度タップで消す）':'建てる空き地をタップ（もう一度タップで消す）');$('#placebar').hidden=false}
 }
 $('#placex').onclick=()=>{placing=null;moving=null;$('#placebar').hidden=true};
+function unplace(c,r){
+  const x=S.grid[r][c];if(!x)return;S.grid[r][c]=null;S.gold+=BLD[x.b].cost;
+  S.advs.forEach(a=>{if(a.inB&&a.inB.c===c&&a.inB.r===r){a.inB=null;a.state='idle';a.timer=.3}if(a.home&&a.home.c===c&&a.home.r===r)a.home=null;
+    if(a.state==='walk'&&a.then&&a.then.k==='enter'&&a.then.c===c&&a.then.r===r){a.state='idle';a.path=null;a.then=null;a.timer=.3}});
+  sfx('poof');puff((c-r)*HW,(c+r)*HH+HH-2);refreshCombos(true);updateUI();save();
+}
 function endMove(){moving=null;$('#placebar').hidden=true}
 function moveB(fc,fr,tc,tr){
   const x=S.grid[fr][fc];if(!x){endMove();return}
@@ -1584,7 +1592,8 @@ function tap(clientX,clientY){
   const rc=cv.getBoundingClientRect(),ax=(clientX-rc.left)*DPR/SC+Math.round(camX),ay=(clientY-rc.top)*DPR/SC+Math.round(camY);
   const c=Math.floor((ax/HW+ay/HH)/2),r=Math.floor((ay/HH-ax/HW)/2);
   if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){moveB(moving.c,moving.r,c,r)}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
-  if(placing){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){const k=placing;if(build(k,c,r)){if(S.gold<BLD[k].cost){placing=null;$('#placebar').hidden=true}}}else sfx('no');return}
+  if(placing){const ex=inMap(c,r)&&S.grid[r][c];if(ex&&ex.b===placing&&ex.lv===1){unplace(c,r);return}
+    if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){const k=placing;if(!build(k,c,r))sfx('no')}else sfx('no');return}
   const hitA=S.advs.filter(a=>inVillage(a)&&a.state!=='in').map(a=>({a,sx:sxOf(a.x,a.y),sy:syOf(a.x,a.y)})).filter(o=>Math.abs(o.sx-ax)<6&&ay>o.sy-14&&ay<o.sy+3).sort((p,q)=>(q.a.x+q.a.y)-(p.a.x+p.a.y))[0];
   if(hitA){sfx('tap');selectAdv(hitA.a.id);return}
   const bs=allB().sort((p,q)=>(q.c+q.r)-(p.c+p.r));
@@ -1640,7 +1649,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105113438',shown=false;
+  var BUILD='20261105113954',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
