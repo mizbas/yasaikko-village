@@ -1029,22 +1029,22 @@ function drawBuilding(type,lv,v,se){
   if(type==='fountain'){diam(cx,cy,12,'#8a939d');faces(cx,cy+1,12,3,'#a8b0ba','#7a838d');diam(cx,cy-3,10,'#5fb0e8');diam(cx,cy-3,6,'#7ac4f0');P(cx-1,cy-14,3,11,'#a8b0ba');P(cx+1,cy-14,1,11,'#7a838d');P(cx-3,cy-15,7,2,'#a8b0ba');return}
   if(type==='kakashi'){sh();P(cx,cy-16,2,16,'#7a5434');P(cx-6,cy-12,14,1,'#7a5434');P(cx-2,cy-13,6,7,'#c86a4a');P(cx-2,cy-10,6,1,'#a84a3a');P(cx-2,cy-19,6,6,'#e8d6a8');P(cx-5,cy-20,12,1,'#d9b45a');P(cx-2,cy-22,6,2,'#d9b45a');P(cx-1,cy-17,1,1,'#333');P(cx+2,cy-17,1,1,'#333');P(cx,cy-15,2,1,'#c85a4a');return}
   if(type==='statue'){diam(cx,cy,10,'#7a838d');faces(cx,cy-1,9,6,'#b8c0ca','#8a939d');diam(cx,cy-7,9,'#cfd6de');P(cx-4,cy-24,8,15,'#f2c53d');P(cx+2,cy-24,2,15,'#c8981e');P(cx-3,cy-25,6,1,'#f2c53d');P(cx-3,cy-29,1,4,'#7cc84a');P(cx+2,cy-30,1,5,'#7cc84a');P(cx,cy-28,1,3,'#5aa83e');P(cx-2,cy-19,1,2,'#6a4a10');P(cx+1,cy-19,1,2,'#6a4a10');P(cx-1,cy-16,2,1,'#6a4a10');P(cx-3,cy-22,1,1,'#fff6c8');return}
-  if(d.st==='shrine'){sh();faces(cx,cy-2,8,8,'#f6f0e4','#d8cfc0');fL(cx,cy-2,8,3,6,0,6,'#6a4a2a');roofP(cx,cy-11,8,8,'#d9473a');P(cx-12,cy-12,2,12,'#d9473a');P(cx+10,cy-6,2,7,'#d9473a');P(cx-13,cy-13,5,1,'#a8302a');lvDots(lv,cx,cy);return}
-  if(d.st==='onsen'){diam(cx,cy,13,'#7a7468');diam(cx,cy-1,12,'#9a9488');diam(cx,cy-1,9,'#6ac4e8');diam(cx,cy-1,6,'#8ad8f4');for(let i=0;i<6;i++){const h=hash(v+i,3);P(cx-9+h%18,cy-4+(h>>3)%6,2,1,'#b8b0a0')}faces(cx-6,cy-6,4,8,'#c89a5a','#a8783a');roofP(cx-6,cy-14,4,5,'#5a4a7a');lvDots(lv,cx,cy);return}
+  if(d.st==='shrine'){sh();faces(cx,cy-2,8,8,'#f6f0e4','#d8cfc0');fL(cx,cy-2,8,3,6,0,6,'#6a4a2a');roofP(cx,cy-11,8,8,'#d9473a');P(cx-12,cy-12,2,12,'#d9473a');P(cx+10,cy-6,2,7,'#d9473a');P(cx-13,cy-13,5,1,'#a8302a');lvDeco(lv,cx,cy);lvDots(lv,cx,cy);return}
+  if(d.st==='onsen'){diam(cx,cy,13,'#7a7468');diam(cx,cy-1,12,'#9a9488');diam(cx,cy-1,9,'#6ac4e8');diam(cx,cy-1,6,'#8ad8f4');for(let i=0;i<6;i++){const h=hash(v+i,3);P(cx-9+h%18,cy-4+(h>>3)%6,2,1,'#b8b0a0')}faces(cx-6,cy-6,4,8,'#c89a5a','#a8783a');roofP(cx-6,cy-14,4,5,'#5a4a7a');lvDeco(lv,cx,cy);lvDots(lv,cx,cy);return}
   if(d.st==='stall'){
     sh();const aw=d.aw;faces(cx,cy-1,10,5,'#c8945a','#a8743a');diam(cx,cy-6,10,'#e8c088');
     for(let i=0;i<5;i++){const h=hash(v+i,type.length);P(cx-6+i*3,cy-9+(i%2),2,2,['#e84a4a','#ffd04a','#5fd08a','#f2a03a','#ffffff'][h%5])}
     P(cx-11,cy-18,1,14,'#6a4420');P(cx+10,cy-18,1,14,'#6a4420');P(cx-1,cy-14,1,8,'#6a4420');
     roofP(cx,cy-17,10,6,aw,true);
-    P(cx+4,cy-28,7,7,'#fff8e8');P(cx+4,cy-28,7,1,'#c09060');icon(d.ic,cx+5,cy-27);lvDots(lv,cx,cy);return}
+    P(cx+4,cy-28,7,7,'#fff8e8');P(cx+4,cy-28,7,1,'#c09060');icon(d.ic,cx+5,cy-27);lvDeco(lv,cx,cy);lvDots(lv,cx,cy);return}
   if(d.st==='hat'){
     sh();faces(cx,cy-1,10,9,'#e8dcc8','#c4b49c');fL(cx,cy-1,10,4,7,0,7,'#5a3a1e');fR(cx,cy-1,10,3,7,3,7,'#9ad0f0');
     diam(cx,cy-11,14,'#6a3d9f');diam(cx,cy-12,13,'#8a5ac8');
     for(let x=cx-9;x<cx+9;x++){const dd=Math.abs(x-cx+.5),top=Math.round(cy-36+dd*2.2+(x>cx?1:0));P(x,top,1,cy-12-top,x<cx?'#9a6ad8':'#6a3d9f')}
     P(cx-9,cy-16,18,2,'#ffd04a');P(cx+6,cy-37,4,2,'#6a3d9f');P(cx+9,cy-36,2,2,'#ffd04a');
-    P(cx-3,cy-26,1,1,'#ffe48a');P(cx+2,cy-31,1,1,'#ffe48a');lvDots(lv,cx,cy);return}
+    P(cx-3,cy-26,1,1,'#ffe48a');P(cx+2,cy-31,1,1,'#ffe48a');lvDeco(lv,cx,cy);lvDots(lv,cx,cy);return}
   // house style
-  const h=d.h||12,hw=11,wall=d.wall,roofC=type==='house'?['#b8583a','#3f7ac8','#5a9a3a'][v%3]:d.roof;
+  const h=(d.h||12)+(lv>=3?2:0),hw=11,wall=lv>=5?shade(d.wall,.25):d.wall,roofC=type==='house'?['#b8583a','#3f7ac8','#5a9a3a'][v%3]:d.roof;
   sh();
   faces(cx,cy-1,hw,h,wall,shade(wall,-.18));
   for(let x=cx-hw;x<cx+hw;x++){const b=x<cx?bL(cx,cy-1,hw,x):bR(cx,cy-1,hw,x);P(x,b,1,1,shade(wall,-.4))}
@@ -1054,9 +1054,20 @@ function drawBuilding(type,lv,v,se){
   fR(cx,cy-1,hw,7,10,4,8,'#9ad0f0');
   if(d.chim){P(cx+5,cy-h-14,3,7,'#8a6a5a');P(cx+5,cy-h-14,3,1,'#5a4a3a')}
   roofP(cx,cy-1-h,hw,Math.round(hw*.75),roofC);
+  {const pk=cy-1-h-Math.round(hw*.75);
+    if(lv>=5){for(let x=cx-hw-2;x<cx+hw+2;x++){const dd=x<cx?cx-1-x:x-cx,t=hw+1-dd;P(x,cy-1-h+Math.floor(t/2)+1,1,1,'#ffd040')}P(cx-1,pk-1,2,2,'#ffd040');P(cx,pk-3,1,1,'#fff6b0')}
+    if(lv>=4){P(cx,pk-8,1,8,'#5a3a1a');P(cx+1,pk-8,5,3,lv>=5?'#ffd040':'#ff5a5a');P(cx+1,pk-8,5,1,'#ffffff80')}}
+  if(lv>=3){fL(cx,cy-1,hw,3,9,9,10,shade(roofC,-.1));fL(cx,cy-1,hw,3,9,8,9,shade(roofC,-.35))}
+  if(lv>=2){fR(cx,cy-1,hw,2,6,3,4,'#8a5a30');for(let i=0;i<2;i++)fR(cx,cy-1,hw,2+i*2,3+i*2,4,5,i?'#ff7aa0':'#ffd040')}
   if(d.beads)for(let i=0;i<6;i++)P(cx-9+i*3,cy-h+Math.floor(Math.abs(i-2.5)),2,2,i%2?'#ffd04a':'#f4f4ff');
   if(d.ic){const bx=cx+2,by=cy-h+1;P(bx,by,7,7,'#fff8e8');P(bx,by,7,1,'#c09060');P(bx,by+6,7,1,'#c09060');icon(d.ic,bx+1,by+1)}
-  lvDots(lv,cx,cy);
+  lvDeco(lv,cx,cy);lvDots(lv,cx,cy);
+}
+function lvDeco(lv,cx,cy){
+  if(lv>=2){P(cx-13,cy-3,4,3,'#4aa83e');P(cx-12,cy-4,2,1,'#6cc858');P(cx-13,cy,4,2,'#c0603a');P(cx-13,cy,4,1,'#d8784a')}
+  if(lv>=3){P(cx+11,cy-9,1,9,'#5a3a1a');P(cx+10,cy-12,3,3,'#ffd860');P(cx+10,cy-13,3,1,'#8a3a1a')}
+  if(lv>=4){for(let i=0;i<4;i++){P(cx+3+i*2,cy+3-Math.floor(i/2),1,1,['#ff6a8a','#ffffff','#ffd040','#b99af2'][i]);P(cx+3+i*2,cy+4-Math.floor(i/2),1,1,'#3f8a30')}}
+  if(lv>=5){P(cx-8,cy-28,1,3,'#fff6b0');P(cx-9,cy-27,3,1,'#fff6b0');P(cx+9,cy-22,1,1,'#ffffff')}
 }
 function lvDots(lv,cx,cy){for(let i=0;i<lv-1;i++){P(cx-12+i*3,cy+2,2,2,'#ffd04a');P(cx-12+i*3,cy+4,2,1,'#a8741a')}}
 function wallSpr(){if(S.world)return wallSprW();return spr('wall'+(season()===3?1:0),30,30,()=>{const cx=15,cy=22;faces(cx,cy,14,7,'#b8b4a4','#8a8678');for(let x=1;x<29;x++){const b=x<15?bL(cx,cy,14,x):bR(cx,cy,14,x);for(let y=b-5;y<b;y+=3)if((x+y)%6<1)P(x,y,1,1,'#6e6a5e')}diam(cx,cy-7,14,season()===3?'#ffffff':'#cfcabb');for(let x=2;x<28;x+=4){const b=(x<15?bL(cx,cy,14,x):bR(cx,cy,14,x))-7;P(x,b-3,2,3,'#cfcabb');P(x,b-3,2,1,'#e8e4d8')}diamEdge(cx,cy-7,12,'#a8a494')})}
@@ -1776,7 +1787,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105124539',shown=false;
+  var BUILD='20261105124704',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
