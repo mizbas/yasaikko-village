@@ -123,6 +123,15 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
 .bar{display:block;height:6px;background:#ddd;border-radius:3px;overflow:hidden;margin-top:3px}
 .bar i{display:block;height:100%;background:#ff9a2a}
 .bar.hp i{background:#e84a4a}
+.goods{margin-top:8px;border:2px solid var(--line);background:#fafaff}
+.goods .gh{background:#e8e8ff;color:#2a2a8a;font-size:13px;padding:3px 8px}
+.gr{display:grid;grid-template-columns:minmax(0,1.3fr) auto minmax(0,1.2fr) auto;gap:2px 8px;align-items:center;padding:4px 8px;border-top:1px solid #e0e0f0;font-size:13px}
+.gr .gn{color:#1a2a8a}
+.gr .gp{color:#c04a10;white-space:nowrap}
+.gr .ge{color:#6a5a4a;font-size:12px}
+.gr .gs{font-size:12px;color:#2a8a2a;white-space:nowrap}
+.gr.lk{opacity:.55}.gr.lk .gs{color:#8a6a4a}
+.gr.cur{background:#fff6d8}
 .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-size:14px}
 .kv span:nth-child(odd){color:#7a6a5a}
 .lead{margin:0 0 6px;font-size:13px;color:#6a5a4a}
@@ -387,6 +396,37 @@ const BLD={
 };
 const bAvail=k=>!BLD[k].w||BLD[k].w===S.world;
 const GEAR={weapon:'wpn',armor:'arm',acc:'acc',magic:'mag'};
+const GOODS={
+  weapon:['木の剣','銅の剣','鉄の剣','はがねの剣','勇者の剣'],
+  armor:['布の服','皮のよろい','くさりかたびら','鉄のよろい','ミスリルのよろい'],
+  acc:['どんぐりの首飾り','銀の指輪','光る石のお守り','星のブローチ','月のティアラ'],
+  magic:['火花の書','つむじ風の書','いかずちの書','星ふりの書','月光の書'],
+  diner:['やさい定食','カレーライス','オムライス','ハンバーグ','満腹フルコース'],
+  yatai:['焼きとうもろこし','焼きそば','たこ焼き','りんごあめ','屋台の王さまセット'],
+  bakery:['クロワッサン','メロンパン','カレーパン','あんぱん','焼きたてバゲット'],
+  juice:['みかんジュース','りんごジュース','ミックスジュース','トロピカルスムージー','ゴールデンネクター'],
+  cakeya:['ショートケーキ','チーズケーキ','モンブラン','フルーツタルト','王国のウェディングケーキ'],
+  shop:['やくそう','おくすり','元気ドリンク','ハイポーション','エリクサー'],
+  inn:['ふつうの部屋','ふかふかベッド','見晴らしの部屋','スイートルーム','王さまの部屋'],
+  onsen:['露天ぶろ','薬湯','泡ぶろ','打たせ湯','ひのきぶろ'],
+  hokora:['お祈り','おはらい','祝福','加護','大いなる加護'],
+  train:['素ぶり','かかし相手','実戦形式','師範の特訓','奥義の伝授']
+};
+const GEFF={wpn:'攻撃+5',arm:'守り+4',acc:'守り+2・HP+8',mag:'攻撃+4（魔法使いは+6）'};
+const gearName=(slot,t)=>{const k=Object.keys(GEAR).find(x=>GEAR[x]===slot);return t>0?GOODS[k][Math.min(t,5)-1]:'なし'};
+function goodsHTML(type,lv){
+  const d=BLD[type],G=GOODS[type];if(!G)return'';
+  const rows=G.map((n,i)=>{const t=i+1,open=t<=lv;let price='',eff='';
+    if(d.gear){price=fmt(gearPrice(type,t))+'G';eff=GEFF[d.gear];const own=S.advs.filter(a=>(a[d.gear]||0)>=t).length;if(open&&own)eff+='・持っている人 '+own+'人'}
+    else if(d.food){price=fmt(feeOf(type,t))+'G';eff='きげん+'+d.food}
+    else if(type==='shop'){price=fmt(feeOf(type,t))+'G';eff='冒険の成功率アップ'}
+    else if(type==='inn'||type==='onsen'){price=fmt(feeOf(type,t))+'G';eff='HP全回復'+(type==='onsen'?'・きげん+20':'')}
+    else if(type==='hokora'){price=fmt(feeOf(type,t))+'G';eff='大ケガがすぐ治る'}
+    else if(type==='train'){price=fmt(feeOf(type,t))+'G';eff='経験値+'+(6+t*4)}
+    return'<div class="gr'+(open?'':' lk')+(t===lv?' cur':'')+'"><span class="gn">'+(open?'':'🔒 ')+esc(n)+'</span><span class="gp">'+price+'</span><span class="ge">'+esc(eff)+'</span><span class="gs">'+(open?(d.gear?'販売中':t===lv?'いま':'—'):'Lv'+t+'で解放')+'</span></div>'}).join('');
+  const head=d.gear?'品ぞろえ（店のLvまでの品が並びます）':d.food?'メニュー（店のLvが上がると新しい料理と値段に）':'サービス（店のLvで内容と値段が変わります）';
+  return'<div class="goods"><div class="gh">'+head+'</div>'+rows+'</div>';
+}
 const FOODS=['diner','yatai','bakery','juice','cakeya'];
 const COMBOS=[
   {id:'rest',n:'休息セット',a:'inn',b:'diner',d:'宿屋と食堂の料金 +30%'},
@@ -659,7 +699,7 @@ function leaveBuilding(a){
   else if(t==='onsen'){const f=feeOf('onsen',x.lv);if(a.gold>=f){a.gold-=f;paid=f;a.hp=a.maxHp;a.ko=false;a.mood=clamp(a.mood+20,0,100);txt='ごくらく〜'}}
   else if(t==='shop'){const f=feeOf('shop',x.lv);let n=0;while(a.pot<3&&a.gold>=f){a.gold-=f;paid+=f;a.pot++;n++}if(n)txt='おくすり+'+n}
   else if(d.food){const f=feeOf(t,x.lv);if(a.gold>=f){a.gold-=f;paid=f;a.mood=clamp(a.mood+d.food,0,100);a.hp=Math.min(a.maxHp,a.hp+Math.round(a.maxHp*.15));txt=happy(a)}}
-  else if(d.gear){const slot=d.gear,p=gearPrice(t,a[slot]+1);if(x.lv>a[slot]&&a.gold>=p){a.gold-=p;paid=p;a[slot]++;recalc(a);txt={wpn:'攻撃アップ',arm:'守りアップ',acc:'守り+HPアップ',mag:'魔力+1'}[slot];log(a.name+'が'+d.n+'で買い物をした')}}
+  else if(d.gear){const slot=d.gear,p=gearPrice(t,a[slot]+1);if(x.lv>a[slot]&&a.gold>=p){a.gold-=p;paid=p;a[slot]++;recalc(a);txt=gearName(slot,a[slot])+'!';log(a.name+'が'+d.n+'で「'+gearName(slot,a[slot])+'」を買った')}}
   else if(t==='train'){
     if(a.lv>=10&&!a.promo){a.promo=true;const old=a.maxHp;recalc(a);a.hp+=a.maxHp-old;sfx('rank');toast('転職！',a.name+'は'+JOBS[a.job].n+'から'+JOBS[a.job].p+'になった');log(a.name+'が'+JOBS[a.job].p+'に転職した');txt='転職!'}
     const f=feeOf('train',x.lv);if(a.gold>=f){a.gold-=f;paid=f;gainExp(a,Math.round((6+x.lv*4)*(comboOn('forest')?1.5:1)));if(!txt)txt='経験値アップ'}}
@@ -1442,7 +1482,7 @@ function openBuildingInfo(c,r){
       (!deco?'<span>売上</span><span>'+fmt(y.sales||0)+'G</span>':'')+
       (!deco&&!maxed?'<span>にぎわい</span><span><span class="bar"><i style="width:'+Math.round(clamp((y.exp||0)/bExpNeed(y),0,1)*100)+'%"></i></span></span>':'')+
       (!deco?'<span>中にいる</span><span>'+(inside.length?esc(inside.join('、')):'だれもいない')+'</span>':'')+'</div></div>'+
-      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p><div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn blue" id="bmove">移動する</button><button type="button" class="btn blue" id="bflip">向きを変える</button><button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
+      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p>'+goodsHTML(y.b,y.lv)+'<div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn blue" id="bmove">移動する</button><button type="button" class="btn blue" id="bflip">向きを変える</button><button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
     {const pc=$('#bpv').getContext('2d');if(y.flip){pc.translate(30,0);pc.scale(-1,1)}pc.drawImage(buildPreview(y.b,y.lv,y.v!=null?y.v:hash(c,r)),0,0)}
     const lvUp=()=>{y.lv++;y.exp=0;y.upT=3;sfx('level');log(d.n+'をLv'+y.lv+'にした');refreshCombos(false);updateUI();save();live()};
     const up=$('#bup');if(up)up.onclick=()=>{if(S.gold<cost){sfx('no');return}S.gold-=cost;lvUp()};
@@ -1479,7 +1519,7 @@ function openAdv(id){
   const a=advById(id);if(!a)return;selectAdv(id);panelKind='adv';
   const live=()=>{const a=advById(id);if(!a){closePanel();return}
     $('#pbody').innerHTML='<div class="list">'+rowHTML(a.id,esc(a.name),esc(SPECIES[a.sp].n)+'の'+esc(jobName(a))+(a.res?'・村の住民':'・旅の冒険者'),'Lv'+a.lv)+'</div>'+
-      '<div class="kv" style="margin-top:6px"><span>HP</span><span>'+a.hp+' / '+a.maxHp+'</span><span>攻撃</span><span>'+a.atk+'（武器 '+a.wpn+'・魔力 '+(a.mag||0)+'）</span><span>守り</span><span>'+a.def+'（防具 '+a.arm+'・アクセ '+(a.acc||0)+'）</span><span>おくすり</span><span>'+a.pot+'個</span><span>経験値</span><span>'+a.exp+' / '+needExp(a.lv)+'</span><span>きげん</span><span>'+a.mood+' / 100</span><span>おこづかい</span><span>'+fmt(a.gold)+'G</span><span>冒険</span><span>'+a.trips+'回</span><span>いま</span><span>'+esc(advStatus(a))+'</span></div>'+
+      '<div class="kv" style="margin-top:6px"><span>HP</span><span>'+a.hp+' / '+a.maxHp+'</span><span>攻撃</span><span>'+a.atk+'</span><span>武器</span><span>'+esc(gearName('wpn',a.wpn))+'</span><span>魔法</span><span>'+esc(gearName('mag',a.mag||0))+'</span><span>守り</span><span>'+a.def+'</span><span>防具</span><span>'+esc(gearName('arm',a.arm))+'</span><span>アクセ</span><span>'+esc(gearName('acc',a.acc||0))+'</span><span>おくすり</span><span>'+a.pot+'個</span><span>経験値</span><span>'+a.exp+' / '+needExp(a.lv)+'</span><span>きげん</span><span>'+a.mood+' / 100</span><span>おこづかい</span><span>'+fmt(a.gold)+'G</span><span>冒険</span><span>'+a.trips+'回</span><span>いま</span><span>'+esc(advStatus(a))+'</span></div>'+
       (a.lv<10&&!a.promo?'<p class="lead" style="margin-top:6px">Lv10になると、訓練所で'+esc(JOBS[a.job].p)+'に転職できます。</p>':'');
     fillRows($('#pbody'),()=>faceCanvas(a));};
   openPanel('冒険者のようす',' ',live);
@@ -1517,6 +1557,15 @@ function openExp(id){
     $('#cvp').getContext('2d').drawImage(caveSpr(id),0,0);
   };
   openPanel(d.n,' ',null);live();
+}
+function openShops(){
+  panelKind='shops';
+  const list=allB().filter(({x})=>GOODS[x.b]).sort((p,q)=>BLD[p.x.b].cat-BLD[q.x.b].cat||p.x.b.localeCompare(q.x.b)||q.x.lv-p.x.lv);
+  const html='<p class="lead">村のお店と、いま並んでいる品物。タップするとくわしく見られます。</p><div class="list">'+(list.length?list.map(({c,r,x})=>{const G=GOODS[x.b],now=G.slice(0,x.lv),next=x.lv<5?G[x.lv]:null;
+    return'<div class="row" data-c="'+c+'" data-r="'+r+'" data-id="'+x.b+'_'+x.lv+'_'+(x.v!=null?x.v:hash(c,r))+'"><canvas></canvas><span><span class="t">'+esc(BLD[x.b].n)+' Lv'+x.lv+'</span><br><span class="d">'+(BLD[x.b].gear?'販売中：':BLD[x.b].food?'メニュー：':'')+now.map(esc).join('・')+(next?'<br>次（Lv'+(x.lv+1)+'）：'+esc(next):'<br>すべて解放ずみ')+'</span></span><span class="p">'+(x.sales?fmt(x.sales)+'G':'')+'</span></div>'}).join(''):'<p class="lead">まだお店がありません。</p>')+'</div>';
+  openPanel('お店の品ぞろえ',html);
+  const root=$('#pbody');fillRows(root,id=>{const [b,lv,v]=id.split('_');return buildPreview(b,+lv,+v)});
+  root.querySelectorAll('.row[data-c]').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>{const c=+r.dataset.c,rr_=+r.dataset.r;sfx('tap');cursor={c,r:rr_};focusTile(c,rr_,.3);openBuildingInfo(c,rr_)}});
 }
 function openWorlds(){
   panelKind='map';
@@ -1562,7 +1611,7 @@ const MENU=[
   ['map','マップ','移動'],
   ['build','建設','建物を建てる'],['advs','冒険者','みんなのようす'],['dun','ダンジョン','探検の状況'],
   ['items','倉庫','アイテム'],['goal','目標','村ランク'],['combo','コンボ図鑑',''],
-  ['scout','スカウト','ダイア5'],['log','できごと',''],['res','成果の表示',''],
+  ['shops','お店','品ぞろえ'],['scout','スカウト','ダイア5'],['log','できごと',''],['res','成果の表示',''],
   ['auto','おまかせ探検',''],['zoom','ズーム',''],
   ['bgm','BGM',''],['sfx','効果音','']
 ];
@@ -1575,6 +1624,7 @@ function menuIc(k){
   else if(k==='combo'){P(1,1,5,5,'#f2c53d');P(8,8,5,5,'#4f8fe0');P(6,6,2,2,'#e84a3a');P(8,1,5,5,'#ef6a5a');P(1,8,5,5,'#7cc265')}
   else if(k==='scout'){g.save();g.translate(1,1);diaIc();g.restore()}
   else if(k==='log'){P(2,1,10,12,'#f8f0e0');P(2,1,10,1,'#a8743a');for(let i=0;i<4;i++)P(4,4+i*2,6,1,'#8a7a6a')}
+  else if(k==='shops'){P(1,6,12,7,'#f8f0e0');for(let i=0;i<12;i++)P(1+i,3,1,4,i%4<2?'#e84a4a':'#ffffff');P(5,9,3,4,'#6a4424');P(9,8,2,2,'#5ab0f0')}
   else if(k==='map'){P(1,2,12,10,'#f0e0b0');P(1,2,12,1,'#a8743a');P(3,5,3,3,'#5aa83e');P(8,7,3,2,'#5ab0f0');P(6,4,1,6,'#d84a3a');P(2,11,10,1,'#c8a870')}
   else if(k==='auto'){P(2,4,10,8,'#7a838d');P(4,7,6,5,'#141820');P(9,1,4,4,'#ffd04a');P(10,2,2,2,'#fff')}
   else if(k==='zoom'){disc(6,6,4,'#2f4fd8');disc(6,6,3,'#cfe6ff');P(9,9,2,2,'#2f4fd8');P(10,10,3,3,'#2f4fd8')}
@@ -1588,7 +1638,7 @@ function openMenu(){
   const html='<p class="lead">村ランク「'+esc(RANKS[S.rank].n)+'」・'+esc(dateText())+(window.YV_BUILD?'<br>バージョン '+esc(String(window.YV_BUILD).slice(4,8).replace(/^(..)/,'$1/')+' '+String(window.YV_BUILD).slice(8,12).replace(/^(..)/,'$1:')):'')+'</p><div class="menu">'+MENU.map(([k,n,s])=>'<button type="button" class="mi" data-m="'+k+'"'+(k in on?' aria-pressed="'+on[k]+'"':'')+'><canvas width="14" height="14"></canvas>'+n+'<span class="sub">'+(k in on?(on[k]?'オン':'オフ'):s)+'</span></button>').join('')+'</div>';
   openPanel('メニュー',html);
   $('#pbody').querySelectorAll('.mi').forEach(b=>{paint(b.querySelector('canvas'),()=>menuIc(b.dataset.m));b.onclick=()=>{sfx('tap');const m=b.dataset.m;
-    if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout')openScout();
+    if(m==='shops')openShops();else if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout')openScout();
     else if(m==='res'){S.opt.res=!S.opt.res;openMenu()}else if(m==='auto'){S.opt.auto=!S.opt.auto;if(S.opt.auto)toast('おまかせ探検オン','元気な冒険者が、自分たちで探検隊を組んで出かけます');openMenu()}else if(m==='zoom'){zoomOut=!zoomOut;const cx=camX+VW/2,cy=camY+VH/2;resize();camX=cx-VW/2;camY=cy-VH/2;clampCam();closePanel()}else if(m==='bgm'||m==='sfx'){setSnd(m);updateSnd()}}});
 }
 
@@ -1660,7 +1710,7 @@ $('#lanebox').addEventListener('click',e=>{if(e.target.closest('#selbar'))return
 $('#lanebox').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDun()}});
 $('#zoom').onclick=()=>setZoom(!zoomOut);
 $('#bL').onclick=()=>{save();sfx('level');toast('セーブしました',dateText()+'・'+RANKS[S.rank].n)};
-$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
+$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'||panelKind==='shops'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
 let lastFromMenu=false;
 ['#lanebox','#selbar'].forEach(s=>$(s).addEventListener('click',()=>{lastFromMenu=false},true));
 cv.addEventListener('pointerdown',()=>{lastFromMenu=false},true);
@@ -1699,7 +1749,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105122458',shown=false;
+  var BUILD='20261105123204',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
