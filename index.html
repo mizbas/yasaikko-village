@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>やさいっこ冒険村</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e47538">
@@ -27,7 +27,8 @@
   color-scheme:light;
 }
 [hidden]{display:none!important}
-html,body{margin:0;height:100%;background:#2b1a0e;color:var(--ink)}
+html,body{margin:0;height:100%;background:#2b1a0e;color:var(--ink);overflow:hidden;touch-action:pan-x pan-y}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:var(--pix);line-height:1.4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
@@ -300,6 +301,10 @@ function setSnd(kind){
   if(AU.ctx){const g=kind==='bgm'?AU.bgmG:AU.sfxG,v=AU.on[kind]?(kind==='bgm'?.4:.7):0;g.gain.setTargetAtTime(v,AU.ctx.currentTime,.08)}
   if(kind==='sfx')sfx('tap');
 }
+// ページ自体の拡大（ピンチ・ダブルタップ）を止める。地図のズームはゲーム側で行う
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+let lastTouchEnd=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTouchEnd<300&&e.target.closest&&e.target.closest('#cv'))e.preventDefault();lastTouchEnd=n},{passive:false});
 ['pointerup','click','touchend','keydown'].forEach(ev=>addEventListener(ev,()=>{if(AU.on.bgm||AU.on.sfx)auInit()},{capture:true,passive:true}));
 document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;if(document.hidden)AU.ctx.suspend();else AU.ctx.resume()});
 
@@ -1787,7 +1792,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105124704',shown=false;
+  var BUILD='20261105124907',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
