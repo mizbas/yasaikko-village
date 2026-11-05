@@ -1619,6 +1619,12 @@ const TOUCH_DY=6;
 let ripple=null;
 function tapLocal(ox,oy){const kx=cv.width/(cv.clientWidth||1),ky=cv.height/(cv.clientHeight||1);const rc=cv.getBoundingClientRect();tapAt(ox*kx/SC+Math.round(camX),oy*ky/SC+Math.round(camY))}
 cv.addEventListener('pointercancel',()=>{ptr=null});
+function bHit(b,ax,ay){
+  const x=b.x,im=bSprite(x.b,x.lv,x.v!=null?x.v:hash(b.c,b.r));
+  let px=Math.floor(ax-((b.c-b.r)*HW-AX)),py=Math.floor(ay-((b.c+b.r)*HH-AY));if(x.flip)px=BW_-1-px;
+  if(px<0||py<0||px>=BW_||py>=BH_)return false;
+  try{const d=im.getContext('2d').getImageData(px,py,1,1).data;return d[3]>60}catch(e){return false}
+}
 function tap(clientX,clientY){const rc=cv.getBoundingClientRect();tapLocal(clientX-rc.left,clientY-rc.top)}
 function tapAt(ax,ay){
   ripple={x:ax,y:ay,t:0};
@@ -1629,11 +1635,17 @@ function tapAt(ax,ay){
   const hitA=S.advs.filter(a=>inVillage(a)&&a.state!=='in').map(a=>({a,sx:sxOf(a.x,a.y),sy:syOf(a.x,a.y)})).filter(o=>Math.abs(o.sx-ax)<6&&ay>o.sy-14&&ay<o.sy+3).sort((p,q)=>(q.a.x+q.a.y)-(p.a.x+p.a.y))[0];
   if(hitA){sfx('tap');selectAdv(hitA.a.id);return}
   const bs=allB().sort((p,q)=>(q.c+q.r)-(p.c+p.r));
-  for(const b of bs){const sx=(b.c-b.r)*HW,sy=(b.c+b.r)*HH;if(Math.abs(ax-sx)<12&&ay>sy-22&&ay<sy+13){sfx('tap');cursor={c:b.c,r:b.r};focusTile(b.c,b.r,.3);openBuildingInfo(b.c,b.r);return}}
+  // 1) 指の下のマスに建物があればそれ  2) 手前の建物の「絵」に重なっていればそれ  3) それ以外はマス
+  let hitB=null;const under=inMap(c,r)&&S.grid[r][c];
+  if(under)hitB={c,r};
+  else{const tcx=(c-r)*HW,tcy=(c+r)*HH+HH,dd=Math.abs(ax-tcx)/HW+Math.abs(ay-tcy)/HH,nearC=inMap(c,r)&&!isRoad(c,r)&&dd<.55;
+    if(!nearC)for(const b of bs){if(b.c+b.r<=c+r||BLD[b.x.b].road)continue;if(bHit(b,ax,ay)){hitB=b;break}}}
+  if(hitB){sfx('tap');cursor={c:hitB.c,r:hitB.r};focusTile(hitB.c,hitB.r,.3);openBuildingInfo(hitB.c,hitB.r);return}
   for(const id of Object.keys(CAVE)){const cp=CAVE[id],d=DUN.find(x=>x.id===id);if(d.rank>S.rank)continue;const sx=(cp.c-cp.r)*HW,sy=(cp.c+cp.r)*HH;if(Math.abs(ax-sx)<16&&ay>sy-34&&ay<sy+14){sfx('tap');openExp(id);return}}
   if(c===GATE.c&&(r===GATE.r||r===GATE.r-1)){sfx('tap');openDun();return}
   clearSel();
   if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){sfx('tap');cursor={c,r};focusTile(c,r,.24);openBuild({c,r})}
+  else if(inMap(c,r)&&isRoad(c,r)){sfx('no');toast('ここは大通り','村の大通りには建てられません');if(!$('#panel').hidden)closePanel()}
   else if(!$('#panel').hidden)closePanel();
 }
 $('#selbar').addEventListener('click',()=>{if(sel&&sel.k==='a'){sfx('tap');openAdv(sel.id)}});
@@ -1681,7 +1693,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105120544',shown=false;
+  var BUILD='20261105121008',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
