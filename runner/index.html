@@ -722,7 +722,7 @@ function icon(c,k){withCtx(c,()=>{g.clearRect(0,0,+c.dataset.lw,+c.dataset.lh);I
 
 /* ---------- run ---------- */
 let R=null,state='title',paused=false;
-const GRAV=1250,JV=-300,JV2=-285,PX=.3,GY=120;
+const GRAV=1150,JV=-335,JV2=-305,PX=.3,GY=120;
 function newRun(){
   const C=CHARAS[SV.ch],M=MOUNTS[SV.mt],Pt=PETS[SV.pet]||{};
   const hpMax=C.hp+(M.hp||0)+(SV.pre.heart?1:0);
@@ -765,10 +765,10 @@ function genChunk(){
   if(pick<.22){const L=rr(180,320);R.ground.push({x0:x,x1:x+L,y:lastY});if(Math.random()<coinChance())coinRow(x+30,lastY-12,Math.floor((L-60)/13));else starLine(x+30,x+L-30,lastY-14,16);if(Math.random()<.5)maybeItem(x+L/2,lastY-40);
     if(d>.12&&Math.random()<.6){const k=enemyK();R.enemies.push({k,x:x+L*.6,y:lastY,vx:k==='mush'?-30:0,x0:x+20,x1:x+L-20})}R.genX=x+L}
   else if(pick<.46){const gap=rr(40,Math.max(55,gapMax*(.45+.5*d))),L=rr(110,220);
-    const ny=clamp(lastY+(Math.random()<.5?0:rnd(3)*16-16),84,128);const nj=(gap+30>sp*.55||ny<lastY-8)?2:1;starPath(x-22,lastY,sp,nj,ny);R.ground.push({x0:x+gap,x1:x+gap+L,y:ny,gapFrom:x});if(Math.random()<coinChance())coinRow(x+gap+30,ny-12,Math.floor((L-50)/13));else starLine(x+gap+30,x+gap+L-20,ny-14,18);
+    const ny=clamp(lastY+(Math.random()<.5?0:rnd(3)*16-16),84,128);const nj=(gap+30>sp*.6||ny<lastY-24)?2:1;starPath(x-22,lastY,sp,nj,ny);R.ground.push({x0:x+gap,x1:x+gap+L,y:ny,gapFrom:x});if(Math.random()<coinChance())coinRow(x+gap+30,ny-12,Math.floor((L-50)/13));else starLine(x+gap+30,x+gap+L-20,ny-14,18);
     if(d>.3&&Math.random()<.4)R.enemies.push({k:'spike',x:x+gap+L*.5,y:ny,w:12+rnd(2)*6});R.genX=x+gap+L}
-  else if(pick<.62){const n=2+rnd(2+Math.round(d*2));let px=x+rr(30,50),py=lastY-30;
-    for(let i=0;i<n;i++){const L=rr(50,90);py=clamp(py+(rnd(3)-1)*(Math.random()<.5?14:20),56,105);R.plats.push({x0:px,x1:px+L,y:py});if(Math.random()<coinChance()*.7)coinRow(px+8,py-12,Math.floor((L-16)/13));else starLine(px+8,px+L-8,py-14,14);if(i===1&&Math.random()<.5)maybeItem(px+L/2,py-28);
+  else if(pick<.62){const n=2+rnd(2+Math.round(d*2));let px=x+rr(30,50),py=lastY-22;
+    for(let i=0;i<n;i++){const L=rr(50,90);py=clamp(py+(rnd(3)-1)*(Math.random()<.5?12:18),64,108);R.plats.push({x0:px,x1:px+L,y:py});if(Math.random()<coinChance()*.7)coinRow(px+8,py-12,Math.floor((L-16)/13));else starLine(px+8,px+L-8,py-14,14);if(i===1&&Math.random()<.5)maybeItem(px+L/2,py-28);
       if(d>.25&&Math.random()<.35)R.enemies.push({k:'slime',x:px+L/2,y:py,vx:0});px+=L+rr(40,Math.max(50,gapMax*.6))}
     const L=rr(120,220);R.ground.push({x0:px,x1:px+L,y:lastY,gapFrom:x});R.genX=px+L}
   else if(pick<.78){const L=rr(240,380);R.ground.push({x0:x,x1:x+L,y:lastY});let ex=x+70;
