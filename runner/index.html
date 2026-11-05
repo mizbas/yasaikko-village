@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>そらかけランナー</title>
-<meta name="theme-color" content="#5ab8f0">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4aa8ff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="そらかけ">
-<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 </head>
 <body>
 <title>そらかけランナー</title>
@@ -1122,5 +1124,28 @@ window.__sr={get R(){return R},get SV(){return SV},startRun:()=>{newRun();state=
 })();
 </script>
 
+<div id="upd" hidden style="position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:12px;padding:8px 16px;font-family:'Mochiy Pop One',sans-serif;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
+<script>
+(function(){
+  var BUILD='20261105152425',shown=false;
+  function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
+  function check(first){
+    fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
+      if(v&&v.build&&v.build!==BUILD){
+        if(first&&!sessionStorage.getItem('sr-reloaded-'+v.build)){sessionStorage.setItem('sr-reloaded-'+v.build,'1');sessionStorage.setItem('sr-updated','1');location.reload();return}
+        show();
+      }
+    }).catch(function(){});
+  }
+  addEventListener('load',function(){
+    try{if(sessionStorage.getItem('sr-updated')){sessionStorage.removeItem('sr-updated');var b=document.getElementById('upd');b.textContent='新しいバージョンに更新しました';b.hidden=false;b.onclick=function(){b.hidden=true};setTimeout(function(){b.hidden=true},3500)}}catch(e){}
+    check(true)});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false)});
+  addEventListener('pageshow',function(e){if(e.persisted)check(false)});
+  if('serviceWorker' in navigator){
+    addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).then(function(reg){document.addEventListener('visibilitychange',function(){if(!document.hidden)reg.update().catch(function(){})})}).catch(function(){})});
+  }
+})();
+</script>
 </body>
 </html>
