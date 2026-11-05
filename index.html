@@ -860,7 +860,7 @@ function drawBuilding(type,lv,v,se){
   if(type==='tree'){const L=LEAF[se];P(cx-1,cy-9,3,9,'#7a4f28');P(cx+1,cy-9,1,9,'#5a3a1c');sh();disc(cx,cy-16,7,L[0]);disc(cx-3,cy-13,5,L[0]);disc(cx+3,cy-13,5,shade(L[0],-.15));disc(cx-2,cy-18,4,L[1]);P(cx-4,cy-19,2,1,shade(L[1],.3));if(L[2])for(let i=0;i<5;i++){const h=hash(v,i);P(cx-6+h%12,cy-22+(h>>4)%10,1,1,L[2])}return}
   if(type==='flower'){diam(cx,cy,10,'#8a5a35');diam(cx,cy-1,9,'#a8733f');const cols=['#f27a9a','#ffd34a','#ffffff','#b99af2','#ff8a4a'];for(let i=0;i<9;i++){const h=hash(v+i,7),x=cx-7+h%14,y=cy-4+(h>>4)%5;P(x,y,1,2,'#3f8a30');P(x-1,y-1,3,1,cols[i%5]);P(x,y-2,1,3,cols[i%5])}return}
   if(type==='field'){diam(cx,cy,13,'#7a4a2a');diam(cx,cy-1,12,'#9a6438');for(let k=-2;k<=2;k++){for(let j=-4;j<=4;j++){const x=cx+j*2+k*2,y=cy-1+k*2-Math.abs(j)*0;if(Math.abs(x-cx)/2+Math.abs(y-cy+1)>5)continue;P(x,y,1,1,'#6e4428');if((j+k)%2===0){P(x,y-2,1,2,'#5cb848');P(x-1,y-2,1,1,'#7cd85a')}}}return}
-  if(type==='bench'){sh();P(cx-7,cy-5,14,2,'#a8743a');P(cx-7,cy-8,14,2,'#c08848');P(cx-7,cy-3,14,1,'#6a4420');P(cx-6,cy-3,1,3,'#5a3a1a');P(cx+5,cy-3,1,3,'#5a3a1a');return}
+  if(type==='bench'){sh();for(let i=0;i<14;i++){const x=cx-8+i,y=cy-7+Math.floor(i/2);P(x,y-5,1,2,'#a8743a');P(x,y-1,1,2,'#c89050');P(x,y+1,1,1,'#7a4a20');if(i===1||i===12){P(x,y-5,1,7,'#6a4420');P(x,y+2,1,3,'#5a3a1a')}}return}
   if(type==='lamp'){sh();P(cx,cy-18,1,18,'#3a3a4a');P(cx-1,cy-1,3,1,'#3a3a4a');P(cx-2,cy-22,5,4,'#3a3a4a');P(cx-1,cy-21,3,2,'#ffe48a');P(cx-2,cy-23,5,1,'#5a5a6a');return}
   if(type==='fountain'){diam(cx,cy,12,'#8a939d');faces(cx,cy+1,12,3,'#a8b0ba','#7a838d');diam(cx,cy-3,10,'#5fb0e8');diam(cx,cy-3,6,'#7ac4f0');P(cx-1,cy-14,3,11,'#a8b0ba');P(cx+1,cy-14,1,11,'#7a838d');P(cx-3,cy-15,7,2,'#a8b0ba');return}
   if(type==='kakashi'){sh();P(cx,cy-16,2,16,'#7a5434');P(cx-6,cy-12,14,1,'#7a5434');P(cx-2,cy-13,6,7,'#c86a4a');P(cx-2,cy-10,6,1,'#a84a3a');P(cx-2,cy-19,6,6,'#e8d6a8');P(cx-5,cy-20,12,1,'#d9b45a');P(cx-2,cy-22,6,2,'#d9b45a');P(cx-1,cy-17,1,1,'#333');P(cx+2,cy-17,1,1,'#333');P(cx,cy-15,2,1,'#c85a4a');return}
@@ -980,7 +980,7 @@ function drawWorld(t){
   const items=[];
   for(let r=-14;r<GH+5;r++)for(let c=-5;c<GW+7;c++){
     const sx=(c-r)*HW,sy=(c+r)*HH;if(!vis(sx,sy,50))continue;
-    if(inMap(c,r)){const x=S.grid[r][c];if(x){const v=hash(c,r);items.push({z:c+r,f:()=>{g.drawImage(bSprite(x.b,x.lv,v),sx-AX,sy-AY);animB(x,sx,sy,t)}})}continue}
+    if(inMap(c,r)){const x=S.grid[r][c];if(x){const v=hash(c,r);items.push({z:c+r,f:()=>{const im=bSprite(x.b,x.lv,x.v!=null?x.v:v);if(x.flip){g.save();g.translate(sx,0);g.scale(-1,1);g.drawImage(im,-AX,sy-AY);g.restore()}else g.drawImage(im,sx-AX,sy-AY);animB(x,sx,sy,t)}})}continue}
     const ring=(c>=-1&&c<=GW&&r>=-1&&r<=GH)&&(c===-1||c===GW||r===-1||r===GH);
     if(ring){if(c===GATE.c&&r===GATE.r){items.push({z:c+r,f:()=>g.drawImage(gateSpr(),sx-20,sy-42)});continue}
       if(c===RC&&r===GH){items.push({z:c+r+.5,f:()=>g.drawImage(archSpr(),sx-20,sy-30)});continue}
@@ -1006,12 +1006,12 @@ function drawWorld(t){
   puffs=puffs.filter(p=>(p.t+=1/60)<.6);puffs.forEach(p=>{p.x+=p.vx/60;p.y+=p.vy/60;P(p.x,p.y,2,2,'#f0f0f0')});
   g.restore();
 }
-function animB(x,sx,sy,t){
-  if(reduce)return;const d=BLD[x.b];
+function animB(x,sx0,sy,t){
+  if(reduce)return;const d=BLD[x.b],fx=dx=>sx0+(x.flip?-dx:dx),sx=sx0;
   if(x.b==='fountain'){const ph=Math.floor(t*6)%3;for(let i=0;i<3;i++)P(sx-5+i*5,sy-6+((i+ph)%3),1,2,'#d8f0ff');P(sx,sy-10-ph,1,1,'#ffffff')}
-  else if(x.b==='onsen'||((x.busy>0)&&d.chim)){const ph=(t*.8+sx*.01)%1;const bx=x.b==='onsen'?sx+2:sx+6,by=x.b==='onsen'?sy+2:sy-d.h-8;for(let i=0;i<2;i++){const q=(ph+i*.5)%1;P(bx+Math.round(Math.sin(q*6)*1.5),by-q*10,2,2,'rgba(255,255,255,'+(0.7*(1-q))+')')}}
+  else if(x.b==='onsen'||((x.busy>0)&&d.chim)){const ph=(t*.8+sx*.01)%1;const bx=(x.b==='onsen'?fx(2):fx(6))-(x.flip?2:0),by=x.b==='onsen'?sy+2:sy-d.h-8;for(let i=0;i<2;i++){const q=(ph+i*.5)%1;P(bx+Math.round(Math.sin(q*6)*1.5),by-q*10,2,2,'rgba(255,255,255,'+(0.7*(1-q))+')')}}
   else if(x.b==='lamp'&&Math.floor(t*2)%2)P(sx,sy-14,1,1,'#ffffff');
-  else if(x.b==='statue'&&Math.floor(t*2)%2)P(sx-4,sy-14,1,1,'#ffffff');
+  else if(x.b==='statue'&&Math.floor(t*2)%2)P(fx(-4),sy-14,1,1,'#ffffff');
 }
 function toDev(wx,wy){return [(wx-Math.round(camX))*SC,(wy-Math.round(camY))*SC]}
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
@@ -1195,7 +1195,7 @@ function openPanel(title,html,live,tabs){
 function closePanel(){$('#panel').hidden=true;cursor=null;panelLive=null;panelKind=null;$('#bR').textContent='メニュー';if(sel&&sel.k==='b')sel=null}
 
 function miniCanvas(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;paint(c,fn);return c}
-function buildPreview(k,lv){return miniCanvas(30,36,()=>{g.drawImage(tileSpr('in',1,season()),1,22);g.drawImage(bSprite(k,lv||1,7),0,-AY+22)})}
+function buildPreview(k,lv,v){return miniCanvas(30,36,()=>{g.drawImage(tileSpr('in',1,season()),1,22);g.drawImage(bSprite(k,lv||1,v!=null?v:7),0,-AY+22)})}
 function rowHTML(id,t,d,p,cls){return'<div class="row '+(cls||'')+'" data-id="'+id+'"><canvas></canvas><span><span class="t">'+t+'</span><br><span class="d">'+d+'</span></span><span class="p">'+p+'</span></div>'}
 function fillRows(root,fn){root.querySelectorAll('.row').forEach(r=>{const cvs=r.querySelector('canvas');if(!cvs)return;const src=fn(r.dataset.id);if(src){cvs.width=src.width;cvs.height=src.height;cvs.getContext('2d').drawImage(src,0,0)}})}
 function needText(k){const nd=BLD[k].need;return Object.keys(nd).map(i=>ITEMS[i].n+'×'+nd[i]+'（'+(S.items[i]||0)+'）').join('・')}
@@ -1237,6 +1237,7 @@ $('#placex').onclick=()=>{placing=null;moving=null;$('#placebar').hidden=true};
 function endMove(){moving=null;$('#placebar').hidden=true}
 function moveB(fc,fr,tc,tr){
   const x=S.grid[fr][fc];if(!x){endMove();return}
+  if(x.v==null)x.v=hash(fc,fr);
   S.grid[tr][tc]=x;S.grid[fr][fc]=null;
   S.advs.forEach(a=>{if(a.inB&&a.inB.c===fc&&a.inB.r===fr){a.inB={c:tc,r:tr};a.x=tc;a.y=tr}if(a.home&&a.home.c===fc&&a.home.r===fr)a.home={c:tc,r:tr};
     if(a.state==='walk'&&a.then&&a.then.k==='enter'&&a.then.c===fc&&a.then.r===fr){a.state='idle';a.path=null;a.then=null;a.timer=.3}
@@ -1246,7 +1247,7 @@ function moveB(fc,fr,tc,tr){
 }
 function build(k,c,r){
   const d=BLD[k];if(!inMap(c,r)||S.gold<d.cost||S.grid[r][c]||isRoad(c,r)||!unlocked(k)||d.rank>S.rank)return false;
-  S.gold-=d.cost;S.grid[r][c]={b:k,lv:1};sfx('build');const sx=(c-r)*HW,sy=(c+r)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
+  S.gold-=d.cost;S.grid[r][c]={b:k,lv:1,v:hash(c,r)};sfx('build');const sx=(c-r)*HW,sy=(c+r)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
   log(d.n+'を建てた');refreshCombos(false);
   S.advs.forEach(a=>{if(a.path&&!a.path.every(q=>walkable(q.x,q.y)))a.state='idle'});
   updateUI();save();return true;
@@ -1267,11 +1268,12 @@ function openBuildingInfo(c,r){
       (!deco?'<span>売上</span><span>'+fmt(y.sales||0)+'G</span>':'')+
       (!deco&&!maxed?'<span>にぎわい</span><span><span class="bar"><i style="width:'+Math.round(clamp((y.exp||0)/bExpNeed(y),0,1)*100)+'%"></i></span></span>':'')+
       (!deco?'<span>中にいる</span><span>'+(inside.length?esc(inside.join('、')):'だれもいない')+'</span>':'')+'</div></div>'+
-      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p><div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn blue" id="bmove">移動する</button><button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
-    $('#bpv').getContext('2d').drawImage(buildPreview(y.b,y.lv),0,0);
+      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p><div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn blue" id="bmove">移動する</button><button type="button" class="btn blue" id="bflip">向きを変える</button><button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
+    {const pc=$('#bpv').getContext('2d');if(y.flip){pc.translate(30,0);pc.scale(-1,1)}pc.drawImage(buildPreview(y.b,y.lv,y.v!=null?y.v:hash(c,r)),0,0)}
     const lvUp=()=>{y.lv++;y.exp=0;y.upT=3;sfx('level');log(d.n+'をLv'+y.lv+'にした');refreshCombos(false);updateUI();save();live()};
     const up=$('#bup');if(up)up.onclick=()=>{if(S.gold<cost){sfx('no');return}S.gold-=cost;lvUp()};
     const ud=$('#bupd');if(ud)ud.onclick=()=>{if(S.dia<dc){sfx('no');toast('ダイアが足りない','ダンジョンの探検でダイアポイントが手に入ります');return}S.dia-=dc;lvUp()};
+    $('#bflip').onclick=()=>{y.flip=!y.flip;sfx('tap');save();live()};
     $('#bmove').onclick=()=>{sfx('tap');closePanel();moving={c,r};placing=null;$('#placet').textContent=d.n+'の移動先の空き地をタップ';$('#placebar').hidden=false};
     $('#bdel').onclick=()=>{const btn=$('#bdel');if(!btn.dataset.sure){btn.dataset.sure='1';btn.textContent='本当に取りこわす';return}
       S.grid[r][c]=null;S.gold+=Math.round(d.cost*.3);S.advs.forEach(a=>{if(a.inB&&a.inB.c===c&&a.inB.r===r)leaveBuilding(a);if(a.home&&a.home.c===c&&a.home.r===r){a.home=null}});refreshCombos(true);sfx('poof');log(d.n+'を取りこわした');closePanel();updateUI();save()};
@@ -1495,7 +1497,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105111843',shown=false;
+  var BUILD='20261105112331',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
