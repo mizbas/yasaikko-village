@@ -1156,6 +1156,7 @@ function toDev(wx,wy){return [(wx-Math.round(camX))*SC,(wy-Math.round(camY))*SC]
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function outlined(txt,x,y,fill,stroke,lw){ctx.lineJoin='round';ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeText(txt,x,y);ctx.fillStyle=fill;ctx.fillText(txt,x,y)}
 function render(t){
+  if(cv.clientHeight&&Math.abs(cv.clientHeight*DPR-cv.height)>3||cv.clientWidth&&Math.abs(cv.clientWidth*DPR-cv.width)>3)resize();
   if(camTo&&!ptr){camX+=(camTo.x-camX)*.18;camY+=(camTo.y-camY)*.18;clampCam();if(Math.abs(camTo.x-camX)<.5&&Math.abs(camTo.y-camY)<.5)camTo=null}
   drawWorld(t);
   ctx.imageSmoothingEnabled=false;ctx.drawImage(buf,0,0,VW*SC,VH*SC);
@@ -1178,6 +1179,7 @@ function render(t){
   ctx.font=Math.round(14*D)+'px "DotGothic16",monospace';
   floats.forEach(f=>{const [dx,dy]=toDev(f.x,f.y-f.t*8);ctx.globalAlpha=f.t>1?1-(f.t-1)/.3:1;outlined(f.txt,dx,dy,f.col,'#4a2a08',4*D)});
   ctx.globalAlpha=1;
+  if(ripple){ripple.t+=1/60;if(ripple.t>.5)ripple=null;else{const [dx,dy]=toDev(ripple.x,ripple.y);ctx.globalAlpha=1-ripple.t*2;ctx.beginPath();ctx.arc(dx,dy,(4+ripple.t*30)*D,0,Math.PI*2);ctx.lineWidth=3*D;ctx.strokeStyle='#ffffff';ctx.stroke();ctx.globalAlpha=1}}
   if(sel&&sel.k==='a'){const a=advById(sel.id);if(a&&inVillage(a)&&a.state!=='in'){const [dx,dy]=toDev(sxOf(a.x,a.y),syOf(a.x,a.y)+3);ctx.font=Math.round(11*D)+'px "DotGothic16",monospace';outlined(a.name,dx,dy+8*D,'#fff','#14205e',3*D)}}
 }
 function P2(x,y,col,D){ctx.beginPath();ctx.moveTo(x-5*D,y-1);ctx.lineTo(x,y+6*D);ctx.lineTo(x+5*D,y-1);ctx.fillStyle=col;ctx.fill()}
@@ -1586,11 +1588,17 @@ $('#res').addEventListener('click',()=>{clearTimeout(resT);nextResult()});
 let ptr=null;
 cv.addEventListener('pointerdown',e=>{camTo=null;ptr={id:e.pointerId,x:e.clientX,y:e.clientY,cx:camX,cy:camY,moved:false};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(!ptr||ptr.id!==e.pointerId)return;const dx=e.clientX-ptr.x,dy=e.clientY-ptr.y;if(!ptr.moved&&Math.hypot(dx,dy)>7)ptr.moved=true;if(ptr.moved){camX=ptr.cx-dx*DPR/SC;camY=ptr.cy-dy*DPR/SC;clampCam()}});
-cv.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const m=ptr.moved;ptr=null;if(!m)tap(e.clientX,e.clientY-(e.pointerType==='touch'?TOUCH_DY:0))});
-const TOUCH_DY=11;
+cv.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const m=ptr.moved;ptr=null;if(m)return;
+  // 要素の中の位置を使う（iPhoneのホーム画面アプリで clientY と要素の位置がずれることがあるため）
+  let ox=e.offsetX,oy=e.offsetY;if(e.target!==cv||!isFinite(ox)||!isFinite(oy)){const rc=cv.getBoundingClientRect();ox=e.clientX-rc.left;oy=e.clientY-rc.top}
+  tapLocal(ox,oy-(e.pointerType==='touch'?TOUCH_DY:0))});
+const TOUCH_DY=6;
+let ripple=null;
+function tapLocal(ox,oy){const kx=cv.width/(cv.clientWidth||1),ky=cv.height/(cv.clientHeight||1);const rc=cv.getBoundingClientRect();tapAt(ox*kx/SC+Math.round(camX),oy*ky/SC+Math.round(camY))}
 cv.addEventListener('pointercancel',()=>{ptr=null});
-function tap(clientX,clientY){
-  const rc=cv.getBoundingClientRect(),ax=(clientX-rc.left)*DPR/SC+Math.round(camX),ay=(clientY-rc.top)*DPR/SC+Math.round(camY);
+function tap(clientX,clientY){const rc=cv.getBoundingClientRect();tapLocal(clientX-rc.left,clientY-rc.top)}
+function tapAt(ax,ay){
+  ripple={x:ax,y:ay,t:0};
   const c=Math.floor((ax/HW+ay/HH)/2),r=Math.floor((ay/HH-ax/HW)/2);
   if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){moveB(moving.c,moving.r,c,r)}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
   if(placing){const ex=inMap(c,r)&&S.grid[r][c];if(ex&&ex.b===placing&&ex.lv===1){unplace(c,r);return}
@@ -1650,7 +1658,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105114556',shown=false;
+  var BUILD='20261105115202',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
