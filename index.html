@@ -80,7 +80,10 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
 .bbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px max(12px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));background-color:#e47538;background-image:linear-gradient(#b8521e 0 2px,transparent 2px),linear-gradient(90deg,#b8521e 0 2px,transparent 2px);background-size:100% 16px,32px 16px;border-top:3px solid #7a2f0c}
 .bb{min-width:120px;height:46px;border-radius:12px;border:3px solid #8a3e12;background:linear-gradient(#fff0c8,#f4bf78);color:#5a2a0a;font-size:19px;box-shadow:0 3px 0 #5a2008}
 .bb:active{transform:translateY(2px);box-shadow:0 1px 0 #5a2008}
-.ovl{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:62px max(6px,env(safe-area-inset-right,0px)) 8px max(6px,env(safe-area-inset-left,0px));background:#10101030}
+.ovl{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 76px) max(6px,env(safe-area-inset-right,0px)) 8px max(6px,env(safe-area-inset-left,0px));background:#10101030;pointer-events:none}
+.ovl>.wood{pointer-events:auto}
+.ovl.low{top:40%;align-items:stretch;padding-top:0;background:transparent}
+.hud{z-index:21!important}
 .wood{position:relative;width:100%;max-height:100%;display:flex;flex-direction:column;background:var(--wood);border:3px solid var(--wood-d);border-radius:4px;box-shadow:inset 0 0 0 2px #fde6b4,0 6px 0 #0006;padding:8px 6px 6px}
 .plate{align-self:center;margin:-2px 0 6px;background:linear-gradient(#cf9a48,#94601e);border:2px solid #5a3410;border-radius:4px;color:#fff;--oc:#4a2808;padding:1px 34px;font-size:19px;box-shadow:inset 0 0 0 1px #f2c87a}
 .tabs{display:flex;gap:3px}
@@ -957,11 +960,12 @@ function resize(){
   clampCam();
 }
 function clampCam(){
-  const x0=-(GH+1)*HW-6,x1=(FC1-FR0+1)*HW+6,y0=(FC0+FR0)*HH-44,y1=(GW+GH+2)*HH+28;
+  const x0=-(GH+1)*HW-40,x1=(FC1-FR0+1)*HW+30,y0=(FC0+FR0)*HH-44,y1=(GW+GH+2)*HH+140;
   camX=x1-x0<=VW?(x0+x1-VW)/2:clamp(camX,x0,x1-VW);
   camY=y1-y0<=VH?(y0+y1-VH)/2:clamp(camY,y0,y1-VH);
 }
-let placing=null,sel=null;
+let placing=null,sel=null,cursor=null,moving=null,camTo=null;
+function focusTile(c,r,fy){camTo={x:(c-r)*HW-VW/2,y:(c+r)*HH+HH-VH*(fy||.5)}}
 function drawWorld(t){
   g=BUFC;const se=season();
   P(0,0,VW,VH,GROUND[se].o2);
@@ -971,7 +975,7 @@ function drawWorld(t){
   for(let r=-15;r<GH+6;r++)for(let c=-6;c<GW+8;c++){const sx=(c-r)*HW,sy=(c+r)*HH;if(!vis(sx,sy,30))continue;
     const k=isRoad(c,r)?'road':inMap(c,r)?'in':'out';g.drawImage(tileSpr(k,hash(c,r)%4,se),sx-HW,sy)}
   // placement highlights
-  if(placing){const on=Math.floor(t*3)%2;for(let r=0;r<GH;r++)for(let c=0;c<GW;c++){if(isRoad(c,r)||S.grid[r][c])continue;g.globalAlpha=on?.95:.55;g.drawImage(hlSpr('#fff070'),(c-r)*HW-HW,(c+r)*HH);g.globalAlpha=1}}
+  if(placing||moving){const on=Math.floor(t*3)%2;for(let r=0;r<GH;r++)for(let c=0;c<GW;c++){if(isRoad(c,r)||S.grid[r][c])continue;const fx=(c-r)*HW-HW,fy=(c+r)*HH;g.globalAlpha=on?.32:.18;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),fx,fy);g.globalAlpha=on?1:.6;g.drawImage(hlSpr('#fff070'),fx,fy);g.globalAlpha=1}}
   // objects
   const items=[];
   for(let r=-14;r<GH+5;r++)for(let c=-5;c<GW+7;c++){
@@ -993,6 +997,9 @@ function drawWorld(t){
   mobs.forEach(m=>{const sx=Math.round(sxOf(m.x,m.y)),sy=Math.round(syOf(m.x,m.y));if(vis(sx,sy,20))items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,sx,sy,t,m.flash>0,m.dir,(m.hp<m.maxHp||m.aggro)?m.hp/m.maxHp:null)})});
   if(raid)raid.mons.forEach(m=>{if(m.hp>0)items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,Math.round(sxOf(m.x,m.y)),Math.round(syOf(m.x,m.y)),t,m.flash>0,m.dir,m.hp/m.maxHp)})});
   items.sort((p,q)=>p.z-q.z).forEach(i=>i.f());
+  if(cursor){const sx=(cursor.c-cursor.r)*HW,sy=(cursor.c+cursor.r)*HH,on=Math.floor(t*4)%2;g.drawImage(hlSpr('#ffe040'),sx-HW,sy);if(on)g.drawImage(hlSpr('#ffffff'),sx-HW,sy);g.globalAlpha=.35;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),sx-HW,sy);g.globalAlpha=1;
+    const b=Math.round(Math.abs(Math.sin(t*5))*3),ay=sy-12-b;P(sx-3,ay,7,4,'#ffffff');P(sx-2,ay+4,5,1,'#ffffff');P(sx-1,ay+5,3,1,'#ffffff');P(sx,ay+6,1,1,'#ffffff');P(sx-2,ay+1,5,2,'#ff7a2a');P(sx-1,ay+3,3,1,'#ff7a2a');P(sx,ay+4,1,1,'#ff7a2a')}
+  if(moving){const sx=(moving.c-moving.r)*HW,sy=(moving.c+moving.r)*HH;g.globalAlpha=Math.floor(t*4)%2?.6:.3;g.drawImage(spr('fillb',28,14,()=>diam(14,7,14,'#46c8ff')),sx-HW,sy);g.globalAlpha=1;g.drawImage(hlSpr('#46c8ff'),sx-HW,sy)}
   if(sel&&sel.k==='b'&&Math.floor(t*3)%2){g.drawImage(hlSpr('#46c8ff'),(sel.c-sel.r)*HW-HW,(sel.c+sel.r)*HH)}
   if(sel&&sel.k==='a'){const a=advById(sel.id);if(a&&inVillage(a)&&a.state!=='in'){const sx=Math.round(sxOf(a.x,a.y)),sy=Math.round(syOf(a.x,a.y)),b=Math.floor(t*4)%2;P(sx-1,sy-22-b,3,2,'#ff4a4a');P(sx,sy-20-b,1,1,'#ff4a4a')}}
   shots=shots.filter(s=>(s.t+=1/60*3)<1);shots.forEach(s=>{const x=s.x+(s.tx-s.x)*s.t,y=s.y+(s.ty-s.y)*s.t;P(sxOf(x,y),syOf(x,y)-6,2,2,s.col)});
@@ -1010,6 +1017,7 @@ function toDev(wx,wy){return [(wx-Math.round(camX))*SC,(wy-Math.round(camY))*SC]
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function outlined(txt,x,y,fill,stroke,lw){ctx.lineJoin='round';ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeText(txt,x,y);ctx.fillStyle=fill;ctx.fillText(txt,x,y)}
 function render(t){
+  if(camTo&&!ptr){camX+=(camTo.x-camX)*.18;camY+=(camTo.y-camY)*.18;clampCam();if(Math.abs(camTo.x-camX)<.5&&Math.abs(camTo.y-camY)<.5)camTo=null}
   drawWorld(t);
   ctx.imageSmoothingEnabled=false;ctx.drawImage(buf,0,0,VW*SC,VH*SC);
   const D=DPR,fs=Math.round(12*D);ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1181,10 +1189,11 @@ let panelLive=null,liveAcc=0,panelKind=null;
 function openPanel(title,html,live,tabs){
   $('#ptitle').textContent=title;const tb=$('#ptabs');
   if(tabs){tb.hidden=false;tb.innerHTML=tabs}else{tb.hidden=true;tb.innerHTML=''}
+  $('#panel').classList.toggle('low',panelKind==='build'&&!!buildAt);
   $('#pbody').innerHTML=html;$('#panel').hidden=false;panelLive=live||null;$('#bR').textContent='戻る';if(live)live();
 }
-function closePanel(){$('#panel').hidden=true;panelLive=null;panelKind=null;$('#bR').textContent='メニュー';if(sel&&sel.k==='b')sel=null}
-$('#panel').addEventListener('click',e=>{if(e.target.id==='panel')closePanel()});
+function closePanel(){$('#panel').hidden=true;cursor=null;panelLive=null;panelKind=null;$('#bR').textContent='メニュー';if(sel&&sel.k==='b')sel=null}
+
 function miniCanvas(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;paint(c,fn);return c}
 function buildPreview(k,lv){return miniCanvas(30,36,()=>{g.drawImage(tileSpr('in',1,season()),1,22);g.drawImage(bSprite(k,lv||1,7),0,-AY+22)})}
 function rowHTML(id,t,d,p,cls){return'<div class="row '+(cls||'')+'" data-id="'+id+'"><canvas></canvas><span><span class="t">'+t+'</span><br><span class="d">'+d+'</span></span><span class="p">'+p+'</span></div>'}
@@ -1197,7 +1206,7 @@ function openBuild(at){buildAt=at;buildSel=null;panelKind='build';renderBuild()}
 function renderBuild(){
   const tabs=CATS.map((c,i)=>'<button type="button" class="tab" role="tab" aria-selected="'+(i===buildTab)+'" data-t="'+i+'">'+c+'</button>').join('');
   const types=Object.keys(BLD).filter(k=>BLD[k].cat===buildTab);
-  const html=(buildAt?'<p class="lead">えらんだ空き地に建てます。となり合わせの組み合わせで、コンボが生まれることがあります。</p>':'<p class="lead">建てるものをえらんでから、村の空き地をタップします。</p>')+'<div class="cards">'+types.map(k=>{const d=BLD[k],lockR=d.rank>S.rank,lockI=!unlocked(k);
+  const html=(buildAt?'<p class="lead">光っている空き地に建てます。カードを2回タップするとすぐ建ちます。</p>':'<p class="lead">建てるものをえらんでから、村の空き地をタップします。</p>')+'<div class="cards">'+types.map(k=>{const d=BLD[k],lockR=d.rank>S.rank,lockI=!unlocked(k);
     return'<button type="button" class="card'+(lockR||lockI?' lock':'')+'" data-k="'+k+'" aria-pressed="'+(buildSel===k)+'"><span class="nm">'+esc(d.n)+'</span><canvas width="30" height="36"></canvas>'+(lockR?'<span class="tagx">ランク'+(d.rank+1)+'</span>':lockI?'<span class="tagx">研究</span>':'')+'<span class="ft"><span>1マス</span><span class="gd o">'+fmt(d.cost)+'G</span></span></button>'}).join('')+'</div><div id="bdetail"></div>';
   openPanel('建設',html,null,tabs);
   const root=$('#pbody');root.querySelectorAll('.card').forEach(b=>{const c=b.querySelector('canvas');c.getContext('2d').drawImage(buildPreview(b.dataset.k),0,0);b.onclick=()=>{sfx('tap');if(buildSel===b.dataset.k){doBuild(b.dataset.k);return}buildSel=b.dataset.k;root.querySelectorAll('.card').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));showBuildDetail()}});
@@ -1224,7 +1233,17 @@ function doBuild(k){
   if(buildAt){build(k,buildAt.c,buildAt.r);closePanel()}
   else{closePanel();placing=k;$('#placet').textContent=d.n+'（'+fmt(d.cost)+'G）を建てる空き地をタップ';$('#placebar').hidden=false}
 }
-$('#placex').onclick=()=>{placing=null;$('#placebar').hidden=true};
+$('#placex').onclick=()=>{placing=null;moving=null;$('#placebar').hidden=true};
+function endMove(){moving=null;$('#placebar').hidden=true}
+function moveB(fc,fr,tc,tr){
+  const x=S.grid[fr][fc];if(!x){endMove();return}
+  S.grid[tr][tc]=x;S.grid[fr][fc]=null;
+  S.advs.forEach(a=>{if(a.inB&&a.inB.c===fc&&a.inB.r===fr){a.inB={c:tc,r:tr};a.x=tc;a.y=tr}if(a.home&&a.home.c===fc&&a.home.r===fr)a.home={c:tc,r:tr};
+    if(a.state==='walk'&&a.then&&a.then.k==='enter'&&a.then.c===fc&&a.then.r===fr){a.state='idle';a.path=null;a.then=null;a.timer=.3}
+    if(a.path&&!a.path.every(q=>walkable(q.x,q.y))){a.state='idle';a.path=null;a.then=null;a.timer=.3}});
+  sfx('build');const sx=(tc-tr)*HW,sy=(tc+tr)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
+  log(BLD[x.b].n+'を移動した');refreshCombos(false);endMove();updateUI();save();
+}
 function build(k,c,r){
   const d=BLD[k];if(!inMap(c,r)||S.gold<d.cost||S.grid[r][c]||isRoad(c,r)||!unlocked(k)||d.rank>S.rank)return false;
   S.gold-=d.cost;S.grid[r][c]={b:k,lv:1};sfx('build');const sx=(c-r)*HW,sy=(c+r)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
@@ -1248,11 +1267,12 @@ function openBuildingInfo(c,r){
       (!deco?'<span>売上</span><span>'+fmt(y.sales||0)+'G</span>':'')+
       (!deco&&!maxed?'<span>にぎわい</span><span><span class="bar"><i style="width:'+Math.round(clamp((y.exp||0)/bExpNeed(y),0,1)*100)+'%"></i></span></span>':'')+
       (!deco?'<span>中にいる</span><span>'+(inside.length?esc(inside.join('、')):'だれもいない')+'</span>':'')+'</div></div>'+
-      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p><div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
+      '<p class="lead" style="margin-top:6px">'+esc(d.d)+(!deco&&!maxed?'。お客さんが来て「にぎわい」がたまると、自動でレベルアップします':'')+'</p><div class="btns">'+(maxed?'':'<button type="button" class="btn" id="bup"'+(S.gold<cost?' aria-disabled="true"':'')+'>Lvアップ（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="bupd"'+(S.dia<dc?' aria-disabled="true"':'')+'>ダイア'+dc+'でLvアップ</button>')+'<button type="button" class="btn blue" id="bmove">移動する</button><button type="button" class="btn" id="bdel" style="filter:hue-rotate(-30deg)">取りこわす（'+fmt(Math.round(d.cost*.3))+'G もどる）</button></div>';
     $('#bpv').getContext('2d').drawImage(buildPreview(y.b,y.lv),0,0);
     const lvUp=()=>{y.lv++;y.exp=0;y.upT=3;sfx('level');log(d.n+'をLv'+y.lv+'にした');refreshCombos(false);updateUI();save();live()};
     const up=$('#bup');if(up)up.onclick=()=>{if(S.gold<cost){sfx('no');return}S.gold-=cost;lvUp()};
     const ud=$('#bupd');if(ud)ud.onclick=()=>{if(S.dia<dc){sfx('no');toast('ダイアが足りない','ダンジョンの探検でダイアポイントが手に入ります');return}S.dia-=dc;lvUp()};
+    $('#bmove').onclick=()=>{sfx('tap');closePanel();moving={c,r};placing=null;$('#placet').textContent=d.n+'の移動先の空き地をタップ';$('#placebar').hidden=false};
     $('#bdel').onclick=()=>{const btn=$('#bdel');if(!btn.dataset.sure){btn.dataset.sure='1';btn.textContent='本当に取りこわす';return}
       S.grid[r][c]=null;S.gold+=Math.round(d.cost*.3);S.advs.forEach(a=>{if(a.inB&&a.inB.c===c&&a.inB.r===r)leaveBuilding(a);if(a.home&&a.home.c===c&&a.home.r===r){a.home=null}});refreshCombos(true);sfx('poof');log(d.n+'を取りこわした');closePanel();updateUI();save()};
   };
@@ -1408,22 +1428,24 @@ $('#res').addEventListener('click',()=>{clearTimeout(resT);nextResult()});
 
 /* ---------- input ---------- */
 let ptr=null;
-cv.addEventListener('pointerdown',e=>{ptr={id:e.pointerId,x:e.clientX,y:e.clientY,cx:camX,cy:camY,moved:false};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointerdown',e=>{camTo=null;ptr={id:e.pointerId,x:e.clientX,y:e.clientY,cx:camX,cy:camY,moved:false};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(!ptr||ptr.id!==e.pointerId)return;const dx=e.clientX-ptr.x,dy=e.clientY-ptr.y;if(!ptr.moved&&Math.hypot(dx,dy)>7)ptr.moved=true;if(ptr.moved){camX=ptr.cx-dx*DPR/SC;camY=ptr.cy-dy*DPR/SC;clampCam()}});
 cv.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const m=ptr.moved;ptr=null;if(!m)tap(e.clientX,e.clientY)});
 cv.addEventListener('pointercancel',()=>{ptr=null});
 function tap(clientX,clientY){
   const rc=cv.getBoundingClientRect(),ax=(clientX-rc.left)*DPR/SC+Math.round(camX),ay=(clientY-rc.top)*DPR/SC+Math.round(camY);
   const c=Math.floor((ax/HW+ay/HH)/2),r=Math.floor((ay/HH-ax/HW)/2);
+  if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){moveB(moving.c,moving.r,c,r)}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
   if(placing){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){const k=placing;if(build(k,c,r)){if(S.gold<BLD[k].cost){placing=null;$('#placebar').hidden=true}}}else sfx('no');return}
   const hitA=S.advs.filter(a=>inVillage(a)&&a.state!=='in').map(a=>({a,sx:sxOf(a.x,a.y),sy:syOf(a.x,a.y)})).filter(o=>Math.abs(o.sx-ax)<6&&ay>o.sy-14&&ay<o.sy+3).sort((p,q)=>(q.a.x+q.a.y)-(p.a.x+p.a.y))[0];
   if(hitA){sfx('tap');selectAdv(hitA.a.id);return}
   const bs=allB().sort((p,q)=>(q.c+q.r)-(p.c+p.r));
-  for(const b of bs){const sx=(b.c-b.r)*HW,sy=(b.c+b.r)*HH;if(Math.abs(ax-sx)<12&&ay>sy-22&&ay<sy+13){sfx('tap');openBuildingInfo(b.c,b.r);return}}
+  for(const b of bs){const sx=(b.c-b.r)*HW,sy=(b.c+b.r)*HH;if(Math.abs(ax-sx)<12&&ay>sy-22&&ay<sy+13){sfx('tap');cursor=null;openBuildingInfo(b.c,b.r);return}}
   for(const id of Object.keys(CAVE)){const cp=CAVE[id],d=DUN.find(x=>x.id===id);if(d.rank>S.rank)continue;const sx=(cp.c-cp.r)*HW,sy=(cp.c+cp.r)*HH;if(Math.abs(ax-sx)<16&&ay>sy-34&&ay<sy+14){sfx('tap');openExp(id);return}}
   if(c===GATE.c&&(r===GATE.r||r===GATE.r-1)){sfx('tap');openDun();return}
   clearSel();
-  if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){sfx('tap');openBuild({c,r})}
+  if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){sfx('tap');cursor={c,r};focusTile(c,r,.24);openBuild({c,r})}
+  else if(!$('#panel').hidden)closePanel();
 }
 $('#selbar').addEventListener('click',()=>{if(sel&&sel.k==='a'){sfx('tap');openAdv(sel.id)}});
 $('#lanebox').addEventListener('click',e=>{if(e.target.closest('#selbar'))return;sfx('tap');openDun()});
@@ -1431,7 +1453,7 @@ $('#lanebox').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.
 $('#dchip').onclick=()=>{sfx('tap');openDun()};
 $('#zoom').onclick=()=>{sfx('tap');zoomOut=!zoomOut;const cx=camX+VW/2,cy=camY+VH/2;resize();camX=cx-VW/2;camY=cy-VH/2;clampCam()};
 $('#bL').onclick=()=>{save();sfx('level');toast('セーブしました',dateText()+'・'+RANKS[S.rank].n)};
-$('#bR').onclick=()=>{sfx('tap');if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
+$('#bR').onclick=()=>{sfx('tap');if(moving||placing){moving=null;placing=null;$('#placebar').hidden=true}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
 let lastFromMenu=false;
 ['#dchip','#lanebox','#selbar'].forEach(s=>$(s).addEventListener('click',()=>{lastFromMenu=false},true));
 cv.addEventListener('pointerdown',()=>{lastFromMenu=false},true);
