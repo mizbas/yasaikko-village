@@ -84,7 +84,7 @@ button:focus-visible{outline:3px solid #ffe04a;outline-offset:2px}
 .team{display:flex;flex-direction:column;min-height:0}
 .team .nm{background:linear-gradient(#f6d9a0,#e8b870);border-radius:8px 8px 0 0;padding:3px 10px;font-family:var(--pop);font-size:16px;color:#c85a10}
 .team .nm em{font-style:normal;color:#2a9ab8}
-.team canvas{flex:1;min-height:0;width:100%;background:#3a3040;border-radius:0 0 8px 8px;image-rendering:auto}
+.team canvas{flex:1;min-height:0;width:100%;object-fit:cover;background:#3a3040;border-radius:0 0 8px 8px;image-rendering:auto}
 .ups{display:flex;flex-direction:column;gap:4px;overflow:auto;min-height:0}
 .up{display:grid;grid-template-columns:34px minmax(0,1fr);gap:6px;align-items:center;border-bottom:2px dotted #d8a060;padding:2px 0;text-align:left;background:none;border-left:0;border-right:0;border-top:0}
 .up canvas{width:34px;height:34px;image-rendering:auto;background:#8a4a1a;border-radius:6px}
@@ -217,7 +217,7 @@ button:focus-visible{outline:3px solid #ffe04a;outline-offset:2px}
     <div class="head"><button type="button" class="back" id="shBack" aria-label="もどる">←</button><span class="ribbon o">ショップ</span></div>
     <div class="left woodbox">
       <div class="lt">
-        <div class="team cream"><div class="nm" id="shName"></div><canvas id="shTeam" width="96" height="72"></canvas></div>
+        <div class="team cream"><div class="nm" id="shName"></div><canvas id="shTeam" width="120" height="72"></canvas></div>
         <div class="ups cream" id="shUps" style="padding:4px 8px"></div>
       </div>
       <div class="lb"><button type="button" class="btn" id="bChara">キャラクター<br>変更</button><button type="button" class="btn" id="bMount">神獣<br>変更</button><button type="button" class="btn" id="bPet">召喚ペット<br>変更</button></div>
@@ -627,6 +627,7 @@ const PETART={
 };
 function drawPet(id,x,y,t,big){
   const A=PETART[id]||PETART.piyo,lw=.5,bob=Math.abs(Math.sin(t*9))*-1.2,f=Math.sin(t*14);
+  if(big==='fly'&&!A.wing&&!A.bird){const w=Math.sin(t*22)*2.4;for(const s of[0,1])B(()=>{const bx2=x-1+s*1.5,by2=y-7;g.moveTo(bx2,by2);g.quadraticCurveTo(bx2-3,by2-5-w,bx2-6.5,by2-5.5-w);g.quadraticCurveTo(bx2-4,by2-2,bx2-.4,by2+1);g.closePath()},s?'#ffffff':'#e8eeff',.4)}
   const bx=x-1,by=y-4.2+bob,hx=x+3.4,hy=y-8.4+bob;
   // tail
   if(A.tail==='thin'){SL([[bx-4,by],[bx-7,by-2+f*.6],[bx-8,by-5+f]],A.b,1.2);if(A.extra==='startail'){star5(bx-8,by-5.6+f,1.6,t);g.fillStyle='#ffe050';g.fill();g.lineWidth=.35;g.strokeStyle=OL;g.stroke()}}
@@ -777,20 +778,20 @@ const SHAPES=[
  ['###...','...###','###...','...###']];
 function starShape(x,yb,maxW){const sh=SHAPES[rnd(SHAPES.length)],cols=sh[0].length,rows=sh.length,sp=13;if(cols*sp>maxW+40){starLine(x,x+maxW,yb,16);return}
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(sh[r][c]==='#')S(x+c*sp,yb-(rows-1-r)*11)}
-function coinRow(x,y,n){for(let i=0;i<n;i++)R.coins_.push({x:x+i*13,y,v:2})}
+function coinRow(x,y,n){for(let i=0;i<n;i++)R.coins_.push({x:x+i*13,y,v:1})}
 function starArc(x0,x1,y0,h){const n=Math.max(3,Math.floor((x1-x0)/16));for(let i=0;i<=n;i++){const t=i/n;S(x0+(x1-x0)*t,y0-Math.sin(t*Math.PI)*h)}}
-function maybeItem(x,y){const r=Math.random();if(r<.12){const ks=['magnet','bridge','giant','fly','heart'];R.items.push({k:ks[rnd(ks.length)],x,y})}else if(r<.16)R.coins_.push({x,y,v:15,bag:1})}
+function maybeItem(x,y){const r=Math.random();if(r<.12){const ks=['magnet','bridge','giant','fly','heart'];R.items.push({k:ks[rnd(ks.length)],x,y})}else if(r<.16)R.coins_.push({x,y,v:10,bag:1})}
 const coinChance=()=>Math.min(.85,.5*(CHARAS[R.ch].coins||1));
 function genChunk(){
   // 配置ルール：着地直後(runIn)と次の穴の手前(runOut)には敵を置かない／穴は「1段で余裕」か「2段がはっきり必要」のどちらか
-  const d=diff(),x=R.genX,sp=baseSpeed(),lastY=R.ground.length?R.ground[R.ground.length-1].y:GY,pick=Math.random();
+  const d=diff(),x=R.genX,sp=baseSpeed(),lastY=R.ground.length?R.ground[R.ground.length-1].y:GY;let pick=Math.random();if(d>.3&&Math.random()<.18+.22*Math.min(1,d))pick=.62+Math.random()*.159;
   const J1=sp*.58,runIn=Math.max(60,sp*.42),runOut=Math.max(70,sp*.55),hop=Math.max(120,J1+34);
   const gap1=()=>rr(36,Math.max(44,J1*.6)),gap2=()=>rr(J1*1.05,J1*1.32);
   const pickGap=()=>Math.random()<.35+.4*d?gap2():gap1();
   const enemyK=()=>{const st=R.stage;return[['slime','mush'],['mush','slime'],['rock','slime'],['slime','bird'],['rock','mush']][st][rnd(2)]};
   const flier=(ex,gy)=>{const k=Math.random()<.6?'bat':'bird',y=gy-44;R.enemies.push({k,x:ex,y,by:y,ph:Math.random()*6});starLine(ex-40,ex+40,gy-12,14)};
   if(pick<.22){const L=rr(200,320);R.ground.push({x0:x,x1:x+L,y:lastY});
-    const hasE=d>.12&&Math.random()<.6,ex=x+runIn+rr(0,Math.max(1,L-runIn-runOut-hop*.3));
+    const hasE=d>.08&&Math.random()<.6+.3*Math.min(1,d),ex=x+runIn+rr(0,Math.max(1,L-runIn-runOut-hop*.3));
     if(Math.random()<coinChance())coinRow(x+30,lastY-12,Math.floor((L-60)/13));else if(!hasE&&Math.random()<.55)starShape(x+40,lastY-14,L-80);else starLine(x+30,x+L-30,lastY-14,16);
     if(hasE){const k=enemyK();R.enemies.push({k,x:ex,y:lastY,vx:k==='mush'?-18:0,x0:ex-18,x1:ex+18});starPath(ex-J1*.5,lastY,sp,1)}
     else if(Math.random()<.5)maybeItem(x+L/2,lastY-40);
@@ -816,7 +817,7 @@ function genChunk(){
       else if(r<.7){const k=enemyK();R.enemies.push({k,x:ex,y:lastY,vx:k==='mush'?-18:0,x0:ex-16,x1:ex+16});starPath(ex-J1*.45,lastY,sp,1)}
       else flier(ex,lastY);
       if(Math.random()<coinChance()*.4)coinRow(ex+J1*.55,lastY-12,4);
-      ex+=w+hop+rr(0,60)}
+      ex+=w+hop+rr(0,Math.max(10,60-40*d))}
     R.genX=x+L}
   else if(pick<.9){const steps=2+rnd(3);let gx=x,gy=lastY;const up=lastY>96;
     for(let i=0;i<steps;i++){const L=rr(80,130),ny=clamp(gy+(up?-1:1)*rr(10,20),70,128);const gp=(!up||ny>=gy)&&Math.random()<.3+d*.3?rr(30,Math.max(40,J1*.45)):0;
@@ -851,7 +852,7 @@ const scoreMul=()=>(1+R.tb.score)*(R.feverT>0?(CHARAS[R.ch].fevmul||2):1);
 function hurt(){
   if(R.inv>0||R.feverT>0||R.it.giant>0||R.it.dash||R.it.fly>0||R.spurt>0)return;
   if(R.barrier>0){R.barrier--;R.inv=1;sfx('item');sparkle(R.x,R.y-12,'#8ad8ff');toast('バリア！');return}
-  R.hp--;R.inv=1.5;R.combo=0;R.hitT=.3;sfx('hurt');sparkle(R.x,R.y-10,'#ff8a8a');if(R.hp<=0)die('hp');
+  R.hp--;R.inv=1.5;if(R.bonusN>0)float(R.x,R.y-30,'Bonus おわり','#ffb0b0');R.combo=0;R.bonusN=0;R.hitT=.3;sfx('hurt');sparkle(R.x,R.y-10,'#ff8a8a');if(R.hp<=0)die('hp');
 }
 function showStartInfo(){const el=$('#stInfo');const C=CHARAS[R.ch],M=MOUNTS[SV.mt];el.innerHTML='<em>Lv.'+lvOf(R.ch)+'</em> '+esc(C.n)+'<br><em>Lv.'+lvOf(SV.mt)+'</em> '+esc(M.n)+'<br><b>獲得点数 +'+Math.round(R.tb.score*100)+'%</b><br><b>獲得ゴールド +'+Math.round(R.tb.gold*100)+'%</b>';el.hidden=false;el.style.opacity=1;clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,500)},3200)}
 function flatAhead(){const end=Math.min(R.x+R.speed*2.6,R.genX-10);let seg=R.ground.find(q=>R.x>=q.x0-2&&R.x<=q.x1+2&&Math.abs(q.y-R.y)<20);if(!seg)return false;
@@ -859,7 +860,7 @@ function flatAhead(){const end=Math.min(R.x+R.speed*2.6,R.genX-10);let seg=R.gro
 function die(why){if(R.dead||R.spurt>0)return;if(R.lastSp&&R.relayUsed){R.lastSp=0;R.spurt=3;R.spurtWhy=why;R.vy=0;R.hp=Math.max(R.hp,0);toast('ラストスパート！');sfx('boost');return}R.dead=true;R.deadT=0;R.why=why;sfx('die');auWant('title')}
 function addFever(v){if(R.feverT>0)return;R.fever=Math.min(100,R.fever+v*(1+((PETS[SV.pet]||{}).fever||0)));if(R.fever>=100){R.fever=0;R.feverT=7;R.feverBanner=2;sfx('fever');auWant('fever')}}
 function getStar(s){
-  const w=s.k==='w',Pt=PETS[SV.pet]||{};const v=(w?100*(Pt.w?Pt.w*petK(SV.pet):1):10)*scoreMul();R.score+=v;R.combo++;R.maxCombo=Math.max(R.maxCombo,R.combo);starPitch=R.combo;sfx(w?'wstar':'star');
+  const w=s.k==='w',Pt=PETS[SV.pet]||{};const v=(w?100*(Pt.w?Pt.w*petK(SV.pet):1):10)*scoreMul();R.score+=v;R.lastStarT=R.t;R.combo++;R.maxCombo=Math.max(R.maxCombo,R.combo);starPitch=R.combo;sfx(w?'wstar':'star');
   if(w){R.nw++;float(s.x,s.y-8,'+'+fmt(v),'#ffe04a');addFever(3)}else{R.nstar++;addFever(.42)}
   if(R.combo%10===0){R.bonusN++;R.bonusT=1.6;R.score+=R.bonusN*10*(CHARAS[R.ch].bonus||1)*scoreMul()}
 }
@@ -906,6 +907,7 @@ function update(dt){
     return false}return true});
   // meteors
   if(R.calmT>0)R.calmT-=dt;
+  if(R.feverT<=0&&R.combo>0&&R.t-(R.lastStarT||0)>2.2){if(R.bonusN>0)float(R.x,R.y-30,'Bonus おわり','#ffb0b0');R.combo=0;R.bonusN=0}
   if(R.dist>3000&&!R.it.dash&&R.feverT<=0&&R.spurt<=0&&!(R.calmT>0)&&R.inv<=0){R.metT-=dt;if(R.metT<=0&&!flatAhead())R.metT=.3;else if(R.metT<=0){const n=R.dist>6000&&Math.random()<.5?2:1;const ys=[30,52,74,96].sort(()=>Math.random()-.5).slice(0,n);ys.forEach((y,i)=>R.warns.push({y,t:1.6+i*.6}));R.metT=rr(6,11)-Math.min(3,R.dist/6000);sfx('no')}}
   R.warns=R.warns.filter(w=>{w.t-=dt;if(w.t<=0){R.enemies.push({k:'meteor',x:R.x+W*(1-PX)+16,y:w.y,vx:-45});return false}return true});
   // enemies
@@ -944,8 +946,8 @@ function updatePet(dt,Pt){
   if(Pt.wget){const w=R.stars.find(s=>s.k==='w'&&s.x>R.x-20&&s.x<R.x+W*.6);if(w){const tx=w.x,ty=w.y+4;R.petX+=(tx-(R.x+R.petX))*Math.min(1,dt*5);R.petY+=(ty-R.petY)*Math.min(1,dt*5);
       if(Math.hypot((R.x+R.petX)-w.x,R.petY-4-w.y)<12){getStar(w);R.stars=R.stars.filter(s=>s!==w);sparkle(w.x,w.y,'#fff')}R.petFly=true;return}}
   R.petFly=false;R.petX+=(-30-R.petX)*Math.min(1,dt*3);
-  const gx=R.x+R.petX;let gyv=null;for(const s of R.ground)if(gx>=s.x0&&gx<=s.x1)gyv=s.y;
-  const tgt=gyv!=null?gyv:(R.it.bridge>0?GY:R.y);R.petY+=(tgt-R.petY)*Math.min(1,dt*8);
+  const gx=R.x+R.petX;let gyv=null;for(const s of R.ground.concat(R.plats))if(gx>=s.x0-2&&gx<=s.x1+2&&s.y>=R.petY-30&&(gyv==null||s.y<gyv))gyv=s.y;
+  if(gyv==null&&R.it.bridge>0)gyv=GY;R.petAir=gyv==null;const tgt=gyv!=null?gyv:Math.min(R.y,R.petY)-4+Math.sin(R.t*8)*2;R.petY+=(tgt-R.petY)*Math.min(1,dt*(gyv!=null?10:5));
 }
 
 /* ---- render ---- */
@@ -1008,7 +1010,7 @@ function render(t){
   R.coins_.forEach(c=>{if(c.x>cx-8&&c.x<cx+W+8)drawCoin(c.x,c.y,t,c)});
   R.stars.forEach(st=>{if(st.x>cx-12&&st.x<cx+W+12)drawStar(st.x,st.y,t,st.k)});
   R.enemies.forEach(e=>{if(e.x>cx-20&&e.x<cx+W+20)drawEnemy(e,t)});
-  drawPet(SV.pet,R.x+R.petX,R.petY,t);
+  drawPet(SV.pet,R.x+R.petX,R.petY,t,(R.petAir||R.petFly)?'fly':0);
   const pose=R.dead||R.hitT>0?'hurt':R.onG?'run':'jump';
   const big=R.it.giant>0;
   if(R.feverT>0||R.it.dash||R.it.fly>0||R.spurt>0){const fx=R.x+2,fy=R.y-16*(big?2:1);g.fillStyle=rg(fx,fy,24*(big?2:1),'rgba(255,240,150,.75)','rgba(255,200,80,0)');g.beginPath();g.arc(fx,fy,24*(big?2:1),0,TAU);g.fill()}
@@ -1105,7 +1107,7 @@ function renderShop(){
   shopTeamAnim();
 }
 let shopRAF=0;
-function shopTeamAnim(){cancelAnimationFrame(shopRAF);const c=$('#shTeam');const loop=()=>{if(state!=='shop'&&state!=='list')return;withCtx(c,()=>{const t=performance.now()/1000;P(0,0,96,72,'#3a3048');for(let i=0;i<6;i++)P((i*23+Math.floor(t*30))%96,20+i*7,10,1,'#4a4058');P(0,58,96,14,'#2a2038');drawPet(SV.pet,26,58,t);const s=drawMount(SV.mt,54,58,t,'run');drawRider(SV.ch,s.x,s.y,t,'run')});shopRAF=requestAnimationFrame(loop)};loop()}
+function shopTeamAnim(){cancelAnimationFrame(shopRAF);const c=$('#shTeam');const loop=()=>{if(state!=='shop'&&state!=='list')return;withCtx(c,()=>{const t=performance.now()/1000;g.fillStyle=lg(0,0,0,72,'#5ab0ff','#d8f0ff');g.fillRect(0,0,120,72);g.fillStyle=rg(60,40,50,'rgba(255,240,180,.7)','rgba(255,240,180,0)');g.fillRect(0,0,120,72);g.globalAlpha=.7;for(let i=0;i<7;i++){const y=12+i*8,x=(((i*37-t*160)%160)+160)%160-20;LN([[x,y],[x+16+i%3*6,y]],'#ffffff',.6)}g.globalAlpha=1;for(let i=0;i<6;i++)disc(((i*26-t*40)%156+156)%156-18,70,6,'#ffffff');g.save();g.translate(64,64);g.scale(1.55,1.55);drawPet(SV.pet,-22,0,t);const s=drawMount(SV.mt,4,0,t,'run');drawRider(SV.ch,s.x,s.y,t,'run');g.restore()});shopRAF=requestAnimationFrame(loop)};loop()}
 let listKind='c',relayMode=false,pgKind='P',pgPage=0;
 function moneyFill(root){root.querySelectorAll('.icg').forEach(c=>icon(c,'gold'));root.querySelectorAll('.icj').forEach(c=>icon(c,'gem'));root.querySelectorAll('.vg').forEach(e=>e.textContent=fmt(SV.gold));root.querySelectorAll('.vj').forEach(e=>e.textContent=fmt(SV.gem))}
 function openList(kind){
@@ -1191,7 +1193,7 @@ window.__sr={get R(){return R},get SV(){return SV},startRun:()=>{newRun();state=
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:12px;padding:8px 16px;font-family:'Mochiy Pop One',sans-serif;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105162021',shown=false;
+  var BUILD='20261105162534',shown=false;
   function verTag(){var v=BUILD.slice(4,6)+'/'+BUILD.slice(6,8)+' '+BUILD.slice(8,10)+':'+BUILD.slice(10,12);['sTitle','sPause'].forEach(function(id){var el=document.getElementById(id);if(!el||el.querySelector('.vtag'))return;var sp=document.createElement('span');sp.className='vtag';sp.textContent='ver '+v;sp.style.cssText='position:absolute;right:10px;bottom:calc(6px + env(safe-area-inset-bottom,0px));font-size:11px;color:#fff;opacity:.75;text-shadow:0 1px 2px #0008;pointer-events:none;font-family:sans-serif';el.appendChild(sp)})}
   addEventListener('load',verTag);
 
