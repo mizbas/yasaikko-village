@@ -1495,17 +1495,23 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  if(!('serviceWorker' in navigator))return;
-  var hadCtrl=!!navigator.serviceWorker.controller,shown=false;
+  var BUILD='20261105111843',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
-  navigator.serviceWorker.addEventListener('controllerchange',function(){if(hadCtrl)show();hadCtrl=true});
-  addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').then(function(reg){
-      function check(){reg.update().catch(function(){})}
-      setInterval(check,30*60*1000);
-      document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+  // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
+  function check(first){
+    fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
+      if(v&&v.build&&v.build!==BUILD){
+        if(first&&!sessionStorage.getItem('yv-reloaded-'+v.build)){sessionStorage.setItem('yv-reloaded-'+v.build,'1');location.reload();return}
+        show();
+      }
     }).catch(function(){});
-  });
+  }
+  addEventListener('load',function(){check(true)});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false)});
+  addEventListener('pageshow',function(e){if(e.persisted)check(false)});
+  if('serviceWorker' in navigator){
+    addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){document.addEventListener('visibilitychange',function(){if(!document.hidden)reg.update().catch(function(){})})}).catch(function(){})});
+  }
 })();
 </script>
 </body>
