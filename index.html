@@ -1581,6 +1581,25 @@ function openExp(id){
   };
   openPanel(d.n,' ',null);live();
 }
+function doLvUp(c,r,silent){const y=cell(c,r);if(!y||BLD[y.b].deco||y.lv>=5||S.gold<upCost(y))return false;S.gold-=upCost(y);y.lv++;y.exp=0;y.upT=3;if(!silent){sfx('level');log(BLD[y.b].n+'をLv'+y.lv+'にした')}return true}
+function openLvList(){
+  panelKind='lvlist';
+  const live=()=>{
+    const list=allB().filter(({x})=>!BLD[x.b].deco&&x.lv<5).sort((p,q)=>upCost(p.x)-upCost(q.x));
+    const maxed=allB().filter(({x})=>!BLD[x.b].deco&&x.lv>=5).length;
+    let can=0,sum=0;list.forEach(({x})=>{const c=upCost(x);if(sum+c<=S.gold){sum+=c;can++}});
+    $('#pbody').innerHTML='<p class="lead">レベルを上げられる建物（安い順）。いまのお金：'+fmt(S.gold)+'G'+(maxed?'・Lv5（最大）の建物 '+maxed+'こ':'')+'</p>'+
+      (list.length?'<div class="btns" style="margin:0 0 8px"><button type="button" class="btn" id="lvall"'+(can?'':' aria-disabled="true"')+'>安い順にまとめて上げる（'+can+'こ・'+fmt(sum)+'G）</button></div>':'')+
+      '<div class="list">'+(list.length?list.map(({c,r,x})=>{const d=BLD[x.b],cost=upCost(x),G=GOODS[x.b],ok=S.gold>=cost;
+        return'<div class="row" data-c="'+c+'" data-r="'+r+'" data-id="'+x.b+'_'+(x.lv+1)+'_'+(x.v!=null?x.v:hash(c,r))+'"><canvas></canvas><span><span class="t">'+esc(d.n)+' Lv'+x.lv+' → '+(x.lv+1)+'</span><br><span class="d">'+(d.fee?'料金 '+feeOf(x.b,x.lv)+'→'+feeOf(x.b,x.lv+1)+'G':'')+(G?(d.fee?'・':'')+'新しく：'+esc(G[x.lv]):'')+(x.b==='house'?((d.fee||G)?'・':'')+'住める人 +1':'')+'</span></span><span class="p"><button type="button" class="btn" data-up="1" style="padding:4px 8px;font-size:13px"'+(ok?'':' aria-disabled="true"')+'>'+fmt(cost)+'G</button></span></div>'}).join(''):'<p class="lead">レベルを上げられる建物はありません。</p>')+'</div>';
+    const root=$('#pbody');fillRows(root,id=>{const [b,lv,v]=id.split('_');return buildPreview(b,+lv,+v)});
+    root.querySelectorAll('.row[data-c]').forEach(rw=>{const c=+rw.dataset.c,r=+rw.dataset.r;
+      rw.querySelector('[data-up]').onclick=e=>{e.stopPropagation();if(doLvUp(c,r)){refreshCombos(false);updateUI();save();live()}else{sfx('no');toast('お金が足りない','あと '+fmt(upCost(cell(c,r))-S.gold)+'G 必要です')}};
+      rw.querySelector('canvas').onclick=rw.querySelector('.t').onclick=()=>{sfx('tap');cursor={c,r};focusTile(c,r,.3);openBuildingInfo(c,r)}});
+    const all=$('#lvall');if(all)all.onclick=()=>{let n=0;for(const {c,r} of list){if(doLvUp(c,r,true))n++}if(n){sfx('level');log(n+'この建物をまとめてレベルアップした');toast('まとめてレベルアップ！',n+'この建物のレベルが上がった');refreshCombos(false);updateUI();save()}else sfx('no');live()};
+  };
+  openPanel('Lvアップ',' ',null);live();
+}
 function openShops(){
   panelKind='shops';
   const list=allB().filter(({x})=>GOODS[x.b]).sort((p,q)=>BLD[p.x.b].cat-BLD[q.x.b].cat||p.x.b.localeCompare(q.x.b)||q.x.lv-p.x.lv);
@@ -1653,7 +1672,7 @@ const MENU=[
   ['map','マップ','移動'],
   ['build','建設','建物を建てる'],['advs','冒険者','みんなのようす'],['dun','ダンジョン','探検の状況'],
   ['items','倉庫','アイテム'],['goal','目標','村ランク'],['combo','コンボ図鑑',''],
-  ['shops','お店','品ぞろえ'],['scout','スカウト','ダイア5'],['log','できごと',''],['res','成果の表示',''],
+  ['lvup','Lvアップ','まとめて'],['shops','お店','品ぞろえ'],['scout','スカウト','ダイア5'],['log','できごと',''],['res','成果の表示',''],
   ['auto','おまかせ探検',''],['zoom','ズーム',''],
   ['bgm','BGM',''],['sfx','効果音','']
 ];
@@ -1666,6 +1685,7 @@ function menuIc(k){
   else if(k==='combo'){P(1,1,5,5,'#f2c53d');P(8,8,5,5,'#4f8fe0');P(6,6,2,2,'#e84a3a');P(8,1,5,5,'#ef6a5a');P(1,8,5,5,'#7cc265')}
   else if(k==='scout'){g.save();g.translate(1,1);diaIc();g.restore()}
   else if(k==='log'){P(2,1,10,12,'#f8f0e0');P(2,1,10,1,'#a8743a');for(let i=0;i<4;i++)P(4,4+i*2,6,1,'#8a7a6a')}
+  else if(k==='lvup'){P(4,7,6,6,'#f8f0e0');for(let i=0;i<4;i++)P(6-i,3+i,2+i*2,1,'#e84a3a');P(10,1,3,1,'#ffb020');P(9,2,5,1,'#ffb020');P(11,3,1,4,'#ffb020')}
   else if(k==='shops'){P(1,6,12,7,'#f8f0e0');for(let i=0;i<12;i++)P(1+i,3,1,4,i%4<2?'#e84a4a':'#ffffff');P(5,9,3,4,'#6a4424');P(9,8,2,2,'#5ab0f0')}
   else if(k==='map'){P(1,2,12,10,'#f0e0b0');P(1,2,12,1,'#a8743a');P(3,5,3,3,'#5aa83e');P(8,7,3,2,'#5ab0f0');P(6,4,1,6,'#d84a3a');P(2,11,10,1,'#c8a870')}
   else if(k==='auto'){P(2,4,10,8,'#7a838d');P(4,7,6,5,'#141820');P(9,1,4,4,'#ffd04a');P(10,2,2,2,'#fff')}
@@ -1680,7 +1700,7 @@ function openMenu(){
   const html='<p class="lead">村ランク「'+esc(RANKS[S.rank].n)+'」・'+esc(dateText())+(window.YV_BUILD?'<br>バージョン '+esc(String(window.YV_BUILD).slice(4,8).replace(/^(..)/,'$1/')+' '+String(window.YV_BUILD).slice(8,12).replace(/^(..)/,'$1:')):'')+'</p><div class="menu">'+MENU.map(([k,n,s])=>'<button type="button" class="mi" data-m="'+k+'"'+(k in on?' aria-pressed="'+on[k]+'"':'')+'><canvas width="14" height="14"></canvas>'+n+'<span class="sub">'+(k in on?(on[k]?'オン':'オフ'):s)+'</span></button>').join('')+'</div>';
   openPanel('メニュー',html);
   $('#pbody').querySelectorAll('.mi').forEach(b=>{paint(b.querySelector('canvas'),()=>menuIc(b.dataset.m));b.onclick=()=>{sfx('tap');const m=b.dataset.m;
-    if(m==='shops')openShops();else if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout'){lastFromMenu=true;openScout()}
+    if(m==='lvup')openLvList();else if(m==='shops')openShops();else if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout'){lastFromMenu=true;openScout()}
     else if(m==='res'){S.opt.res=!S.opt.res;openMenu()}else if(m==='auto'){S.opt.auto=!S.opt.auto;if(S.opt.auto)toast('おまかせ探検オン','元気な冒険者が、自分たちで探検隊を組んで出かけます');openMenu()}else if(m==='zoom'){zoomOut=!zoomOut;const cx=camX+VW/2,cy=camY+VH/2;resize();camX=cx-VW/2;camY=cy-VH/2;clampCam();closePanel()}else if(m==='bgm'||m==='sfx'){setSnd(m);updateSnd()}}});
 }
 
@@ -1753,7 +1773,7 @@ $('#lanebox').addEventListener('click',e=>{if(e.target.closest('#selbar'))return
 $('#lanebox').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDun()}});
 $('#zoom').onclick=()=>setZoom(!zoomOut);
 $('#bL').onclick=()=>{save();sfx('level');toast('セーブしました',dateText()+'・'+RANKS[S.rank].n)};
-$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'||panelKind==='shops'||panelKind==='scout'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
+$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'||panelKind==='shops'||panelKind==='scout'||panelKind==='lvlist'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
 let lastFromMenu=false;
 ['#lanebox','#selbar'].forEach(s=>$(s).addEventListener('click',()=>{lastFromMenu=false},true));
 cv.addEventListener('pointerdown',()=>{lastFromMenu=false},true);
@@ -1792,7 +1812,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105124907',shown=false;
+  var BUILD='20261105125341',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
