@@ -1586,7 +1586,8 @@ $('#res').addEventListener('click',()=>{clearTimeout(resT);nextResult()});
 let ptr=null;
 cv.addEventListener('pointerdown',e=>{camTo=null;ptr={id:e.pointerId,x:e.clientX,y:e.clientY,cx:camX,cy:camY,moved:false};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(!ptr||ptr.id!==e.pointerId)return;const dx=e.clientX-ptr.x,dy=e.clientY-ptr.y;if(!ptr.moved&&Math.hypot(dx,dy)>7)ptr.moved=true;if(ptr.moved){camX=ptr.cx-dx*DPR/SC;camY=ptr.cy-dy*DPR/SC;clampCam()}});
-cv.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const m=ptr.moved;ptr=null;if(!m)tap(e.clientX,e.clientY)});
+cv.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const m=ptr.moved;ptr=null;if(!m)tap(e.clientX,e.clientY-(e.pointerType==='touch'?TOUCH_DY:0))});
+const TOUCH_DY=11;
 cv.addEventListener('pointercancel',()=>{ptr=null});
 function tap(clientX,clientY){
   const rc=cv.getBoundingClientRect(),ax=(clientX-rc.left)*DPR/SC+Math.round(camX),ay=(clientY-rc.top)*DPR/SC+Math.round(camY);
@@ -1649,7 +1650,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105113954',shown=false;
+  var BUILD='20261105114237',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
