@@ -63,7 +63,7 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
 .placebar #placeok{background:#ffd860;font-weight:400}
 .placebar div{display:flex;align-items:center;gap:10px;background:#fff8e6;border:3px solid #c0742a;border-radius:6px;padding:5px 8px 5px 12px;font-size:14px;box-shadow:0 3px 0 #0005}
 .placebar button{border:2px solid #8a3e12;background:#f6c98a;border-radius:6px;padding:2px 10px}
-#toast{position:absolute;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 80px);z-index:7;display:flex;justify-content:center;pointer-events:none}
+#toast{position:absolute;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 80px);z-index:26;display:flex;justify-content:center;pointer-events:none}
 .toast{max-width:420px;width:100%;background:linear-gradient(#fff8e6,#fbe6b8);border:3px solid #8a5a22;border-radius:6px;padding:6px 12px;text-align:center;box-shadow:0 4px 0 #0005;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
 .toast b{display:block;font-weight:400;font-size:18px;color:#d04a10}
 .toast span{font-size:13px}
@@ -164,7 +164,7 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
     <div class="hud">
       <div class="date o"><canvas id="ic-season" width="12" height="12"></canvas><span id="date">1年 4月1週</span></div>
       <div class="gbar o"><canvas id="ic-coin" width="12" height="12"></canvas><b id="money">0G</b></div>
-      <div class="row2"><button type="button" class="pill o zb" id="zoom" aria-label="ズーム切りかえ" style="pointer-events:auto;min-width:0;padding:0 10px">ズーム</button><span class="pill o" title="住民と冒険者"><canvas id="ic-house" width="12" height="12"></canvas><b id="pop">0</b></span><span class="pill o" title="ダイアポイント"><canvas id="ic-dia" width="12" height="12"></canvas><b id="dia">0</b></span></div>
+      <div class="row2"><button type="button" class="pill o zb" id="zoom" aria-label="ズーム切りかえ" style="pointer-events:auto;min-width:0;padding:0 10px">ズーム</button><span class="pill o" title="冒険者の数／上限"><canvas id="ic-house" width="12" height="12"></canvas><b id="pop">0</b></span><span class="pill o" title="ダイアポイント"><canvas id="ic-dia" width="12" height="12"></canvas><b id="dia">0</b></span></div>
     </div>
     <div class="fame" aria-label="人気"><canvas class="wheel" id="ic-wheel" width="28" height="28"></canvas><span class="lb o">人気</span><span class="num o" id="fame">0</span><span class="fb"><u id="fbar"></u></span></div>
     <div class="placebar" id="placebar" hidden><div><span id="placet"></span><button type="button" id="placeflip" hidden>向き</button><button type="button" id="placeok" hidden>ここに置く</button><button type="button" id="placex">やめる</button></div></div>
@@ -1144,6 +1144,7 @@ function clampCam(){
   camX=x1-x0<=VW?(x0+x1-VW)/2:clamp(camX,x0,x1-VW);
   camY=y1-y0<=VH?(y0+y1-VH)/2:clamp(camY,y0,y1-VH);
 }
+let upBubbles=[];
 let placing=null,sel=null,cursor=null,moving=null,camTo=null,pend=null,buildFlip=false,ghostInfo=null;
 function focusTile(c,r,fy){camTo={x:(c-r)*HW-VW/2,y:(c+r)*HH+HH-VH*(fy||.5)}}
 function drawWorld(t){
@@ -1210,6 +1211,12 @@ function render(t){
   drawWorld(t);
   ctx.imageSmoothingEnabled=false;ctx.drawImage(buf,0,0,VW*SC,VH*SC);
   const D=DPR,fs=Math.round(12*D);ctx.textAlign='center';ctx.textBaseline='middle';
+  // level-up bubbles (can afford)
+  upBubbles=[];
+  if(!placing&&!moving&&$('#panel').hidden)allB().forEach(({c,r,x})=>{const d=BLD[x.b];if(d.deco||x.lv>=5||x.upT>0||S.gold<upCost(x))return;
+    const bx=(c-r)*HW,by=(c+r)*HH-30;const [dx,dy]=toDev(bx,by);if(dx<-40*D||dx>cv.width+40*D||dy<-20*D||dy>cv.height+20*D)return;
+    upBubbles.push({c,r,bx,by});const bob=Math.sin(t*4+c)*2*D;ctx.font=Math.round(11*D)+'px "DotGothic16",monospace';const tx='Lv↑',w=ctx.measureText(tx).width+12*D;
+    rr(dx-w/2,dy-10*D+bob,w,20*D,9*D);ctx.fillStyle='#ffe048';ctx.fill();ctx.lineWidth=2*D;ctx.strokeStyle='#c06a10';ctx.stroke();ctx.beginPath();ctx.moveTo(dx-4*D,dy+9*D+bob);ctx.lineTo(dx,dy+14*D+bob);ctx.lineTo(dx+4*D,dy+9*D+bob);ctx.fillStyle='#ffe048';ctx.fill();ctx.fillStyle='#8a3a08';ctx.fillText(tx,dx,dy+1+bob)});
   // building tags & level up
   allB().forEach(({c,r,x})=>{
     const [dx,dy]=toDev((c-r)*HW,(c+r)*HH);if(dx<-60*D||dx>cv.width+60*D||dy<-40*D||dy>cv.height+40*D)return;
@@ -1310,7 +1317,7 @@ function SPR_season(){} // sprites are keyed by season already
 /* ---------- HUD ---------- */
 function updateUI(){
   $('#money').textContent=fmt(S.gold)+'G';$('#dia').textContent=fmt(S.dia);
-  $('#pop').textContent=residents()+'/'+S.advs.length;
+  $('#pop').textContent=S.advs.length+'/'+advCap();
   $('#date').textContent=dateText();
   const f=fame(),sc=rankScore(),nx=S.rank<4?RANKS[S.rank+1].at:sc,pv=RANKS[S.rank].at;
   $('#fame').textContent=fmt(f);$('#fbar').style.width=(S.rank<4?clamp((sc-pv)/(nx-pv),0,1)*100:100)+'%';
@@ -1601,11 +1608,30 @@ function openCombo(){
   openPanel('コンボ図鑑',html);
 }
 function openLog(){panelKind='log';openPanel('できごと','<div class="list">'+(logs.length?logs.map(l=>'<div class="row nocv"><span><span class="d">'+esc(l.w)+'</span><br>'+esc(l.m)+'</span><span></span></div>').join(''):'<p class="lead">まだ何もありません。</p>')+'</div>')}
+function openLvConfirm(c,r){
+  const x=cell(c,r);if(!x)return;const d=BLD[x.b];panelKind='binfo';sel={k:'b',c,r};
+  const cost=upCost(x),G=GOODS[x.b];
+  const diff=[];if(d.fee)diff.push('料金 '+feeOf(x.b,x.lv)+'G → '+feeOf(x.b,x.lv+1)+'G');if(G)diff.push('新しく：'+G[x.lv]);if(x.b==='house')diff.push('住める人数 '+(1+x.lv)+' → '+(2+x.lv)+'人');diff.push('人気 +2');
+  openPanel('レベルアップしますか？','<div style="display:flex;gap:10px;align-items:center"><canvas id="lvpv" width="30" height="36" style="width:60px;height:72px;image-rendering:pixelated;background:#e2f5d4;border:2px solid var(--line)"></canvas><div><b style="font-weight:400;font-size:17px;color:#1a2a8a">'+esc(d.n)+' Lv'+x.lv+' → Lv'+(x.lv+1)+'</b><br><span class="lead">'+diff.map(esc).join('<br>')+'</span></div></div><div class="btns"><button type="button" class="btn" id="lvyes">レベルアップする（'+fmt(cost)+'G）</button><button type="button" class="btn blue" id="lvno">やめる</button></div>');
+  {const pc=$('#lvpv').getContext('2d');if(x.flip){pc.translate(30,0);pc.scale(-1,1)}pc.drawImage(buildPreview(x.b,x.lv+1,x.v!=null?x.v:hash(c,r)),0,0)}
+  $('#lvyes').onclick=()=>{const y=cell(c,r);if(!y||S.gold<upCost(y)){sfx('no');return}S.gold-=upCost(y);y.lv++;y.exp=0;y.upT=3;sfx('level');log(d.n+'をLv'+y.lv+'にした');refreshCombos(false);updateUI();save();closePanel()};
+  $('#lvno').onclick=()=>{sfx('tap');closePanel()};
+}
 function openScout(){
-  const cost=5;
-  if(S.dia<cost){sfx('no');toast('ダイアが足りない','スカウトにはダイア'+cost+'が必要です');return}
-  if(S.advs.length>=advCap()){sfx('no');toast('村がいっぱい','宿屋や家を建てると、冒険者をもっと呼べます');return}
-  S.dia-=cost;const a=newAdv(true);S.advs.push(a);a.state='idle';a.timer=.3;bubble(a,'star');sfx('arrive');toast('スカウト成功！',a.name+'（'+jobName(a)+' Lv'+a.lv+'）がやってきた');log(a.name+'をスカウトした');closePanel();updateUI();
+  const cost=5;panelKind='scout';
+  const full=S.advs.length>=advCap();
+  const weak=S.advs.filter(a=>!a.res&&!a.pid&&a.state!=='dungeon').sort((p,q)=>power(p)-power(q))[0];
+  const lvMin=3+S.rank*3+WORLDS[S.world].lv0-1;
+  let html='<p class="lead">ダイア'+cost+'で、腕のいい冒険者をスカウトします（Lv'+lvMin+'〜'+(lvMin+2)+'くらい・おこづかい多め）。いまのダイア：'+S.dia+'</p>';
+  if(full&&!weak)html+='<p class="lead" style="color:#c04a10">村がいっぱいで、入れかえられる旅の冒険者もいません（住民は入れかえられません）。宿屋や家を建てると上限が増えます（最大20人）。</p>';
+  else if(full)html+='<p class="lead" style="color:#c04a10">村がいっぱい（'+S.advs.length+'/'+advCap()+'人）です。いちばん弱い旅の冒険者「'+esc(weak.name)+'」（'+esc(jobName(weak))+' Lv'+weak.lv+'）が旅立ち、かわりに新しい冒険者が来ます。</p>';
+  html+='<div class="btns"><button type="button" class="btn blue" id="scgo"'+(S.dia<cost||(full&&!weak)?' aria-disabled="true"':'')+'>'+(full?'入れかえてスカウト':'スカウトする')+'（ダイア'+cost+'）</button></div>';
+  openPanel('スカウト',html);
+  $('#scgo').onclick=()=>{
+    if(S.dia<cost){sfx('no');toast('ダイアが足りない','ダンジョンの探検や魔物退治で手に入ります');return}
+    if(S.advs.length>=advCap()){if(!weak){sfx('no');return}S.advs=S.advs.filter(a=>a!==weak);log(weak.name+'は次の旅へ出発していった');if(sel&&sel.k==='a'&&sel.id===weak.id)clearSel()}
+    S.dia-=cost;const a=newAdv(true);S.advs.push(a);a.state='idle';a.timer=.3;bubble(a,'star');sfx('arrive');toast('スカウト成功！',a.name+'（'+jobName(a)+' Lv'+a.lv+'）がやってきた');log(a.name+'をスカウトした');closePanel();updateUI();save();
+  };
 }
 const MENU=[
   ['map','マップ','移動'],
@@ -1638,7 +1664,7 @@ function openMenu(){
   const html='<p class="lead">村ランク「'+esc(RANKS[S.rank].n)+'」・'+esc(dateText())+(window.YV_BUILD?'<br>バージョン '+esc(String(window.YV_BUILD).slice(4,8).replace(/^(..)/,'$1/')+' '+String(window.YV_BUILD).slice(8,12).replace(/^(..)/,'$1:')):'')+'</p><div class="menu">'+MENU.map(([k,n,s])=>'<button type="button" class="mi" data-m="'+k+'"'+(k in on?' aria-pressed="'+on[k]+'"':'')+'><canvas width="14" height="14"></canvas>'+n+'<span class="sub">'+(k in on?(on[k]?'オン':'オフ'):s)+'</span></button>').join('')+'</div>';
   openPanel('メニュー',html);
   $('#pbody').querySelectorAll('.mi').forEach(b=>{paint(b.querySelector('canvas'),()=>menuIc(b.dataset.m));b.onclick=()=>{sfx('tap');const m=b.dataset.m;
-    if(m==='shops')openShops();else if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout')openScout();
+    if(m==='shops')openShops();else if(m==='map')openWorlds();else if(m==='build')openBuild(null);else if(m==='advs')openAdvs();else if(m==='dun')openDun();else if(m==='items')openItems();else if(m==='goal')openGoal();else if(m==='combo')openCombo();else if(m==='log')openLog();else if(m==='scout'){lastFromMenu=true;openScout()}
     else if(m==='res'){S.opt.res=!S.opt.res;openMenu()}else if(m==='auto'){S.opt.auto=!S.opt.auto;if(S.opt.auto)toast('おまかせ探検オン','元気な冒険者が、自分たちで探検隊を組んで出かけます');openMenu()}else if(m==='zoom'){zoomOut=!zoomOut;const cx=camX+VW/2,cy=camY+VH/2;resize();camX=cx-VW/2;camY=cy-VH/2;clampCam();closePanel()}else if(m==='bgm'||m==='sfx'){setSnd(m);updateSnd()}}});
 }
 
@@ -1684,6 +1710,7 @@ function bHit(b,ax,ay){
 }
 function tap(clientX,clientY){const rc=cv.getBoundingClientRect();tapLocal(clientX-rc.left,clientY-rc.top)}
 function tapAt(ax,ay){
+  if(!placing&&!moving){const ub=upBubbles.find(b=>Math.abs(ax-b.bx)<9&&Math.abs(ay-b.by)<7);if(ub){sfx('tap');cursor={c:ub.c,r:ub.r};focusTile(ub.c,ub.r,.3);openLvConfirm(ub.c,ub.r);return}}
   ripple={x:ax,y:ay,t:0};
   const c=Math.floor((ax/HW+ay/HH)/2),r=Math.floor((ay/HH-ax/HW)/2);
   if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){if(pend&&pend.c===c&&pend.r===r)moveB(moving.c,moving.r,c,r);else{pend={c,r};sfx('tap');setPlacebar()}}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
@@ -1710,7 +1737,7 @@ $('#lanebox').addEventListener('click',e=>{if(e.target.closest('#selbar'))return
 $('#lanebox').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDun()}});
 $('#zoom').onclick=()=>setZoom(!zoomOut);
 $('#bL').onclick=()=>{save();sfx('level');toast('セーブしました',dateText()+'・'+RANKS[S.rank].n)};
-$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'||panelKind==='shops'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
+$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'||panelKind==='shops'||panelKind==='scout'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
 let lastFromMenu=false;
 ['#lanebox','#selbar'].forEach(s=>$(s).addEventListener('click',()=>{lastFromMenu=false},true));
 cv.addEventListener('pointerdown',()=>{lastFromMenu=false},true);
@@ -1749,7 +1776,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105123204',shown=false;
+  var BUILD='20261105124539',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
