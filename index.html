@@ -367,7 +367,7 @@ const JOBS={
 const CATS=['設備','お店','飲食','飾り','道'];
 const BLD={
   inn:{n:'宿屋',cat:0,cost:300,rank:0,fee:18,dur:5,st:'house',roof:'#3f9a4a',wall:'#f2e0b8',h:15,ic:'bed',tag:'お休み',d:'泊まるとHPが全回復する'},
-  house:{n:'家',cat:0,cost:600,rank:1,st:'house',roof:'#b8583a',wall:'#f4ead4',h:11,chim:1,tag:'くつろぎ',d:'気に入った冒険者が住みつく。住民は村を出ていかない'},
+  house:{n:'家',cat:0,cost:600,rank:1,st:'house',roof:'#b8583a',wall:'#f4ead4',h:11,chim:1,tag:'くつろぎ',d:'冒険者の上限が増え、気に入った冒険者が住みつく。住民は村を出ていかない'},
   train:{n:'訓練所',cat:0,cost:900,rank:1,fee:28,dur:5,st:'house',roof:'#8a5a30',wall:'#e2c89a',h:12,ic:'up',tag:'特訓中',d:'経験値がもらえる。Lv10になると、ここで上位の職業に転職する'},
   hokora:{n:'ほこら',cat:0,cost:800,rank:2,fee:24,dur:3,st:'shrine',tag:'お祈り',d:'大ケガをした冒険者をすぐに元気にする'},
   onsen:{n:'温泉',cat:0,cost:1400,rank:2,fee:40,dur:5,st:'onsen',need:{tume:5},tag:'ぽかぽか',d:'HPが全回復して、きげんもとても良くなる'},
@@ -601,7 +601,8 @@ function gearPrice(type,tier){
 const upCost=x=>Math.round(BLD[x.b].cost*.9*x.lv);
 const upDia=x=>x.lv*3;
 const bExpNeed=x=>Math.round(BLD[x.b].cost*1.6*x.lv);
-const advCap=()=>Math.min(20,3+countB('inn')*2+allB('house').reduce((a,{x})=>a+1+x.lv,0)+S.rank);
+const ADV_MAX=50;
+const advCap=()=>Math.min(ADV_MAX,3+countB('inn')*2+countB('onsen')+allB('house').reduce((a,{x})=>a+1+x.lv,0)+S.rank*2);
 
 /* ---------- adventurers ---------- */
 function newAdv(boost){
@@ -1285,7 +1286,7 @@ const WEEK_SEC=40;
 function update(dt){
   S.wt+=dt;if(S.wt>=WEEK_SEC){S.wt-=WEEK_SEC;S.week++;onNewWeek()}
   S.nextArrive-=dt;
-  if(S.nextArrive<=0){S.nextArrive=clamp(24-fame()*.12,6,24)*(0.7+Math.random()*.6);
+  if(S.nextArrive<=0){S.nextArrive=clamp(24-fame()*.12,5,24)*(0.7+Math.random()*.6)*(S.advs.length<advCap()*.6?.55:1);
     if(S.advs.length<advCap()){const a=newAdv();S.advs.push(a);sfx('arrive');log(a.name+'（'+jobName(a)+' Lv'+a.lv+'）が村にやってきた');bubble(a,'bang');a.state='idle';a.timer=.3}}
   if(raid)raidTick(dt);
   mobTick(dt);partyTick(dt);
@@ -1545,7 +1546,7 @@ function openAdvs(){
   panelKind='advs';
   const live=()=>{
     const list=S.advs.slice().sort((p,q)=>(q.res-p.res)||q.lv-p.lv);
-    $('#pbody').innerHTML='<p class="lead">冒険者 '+S.advs.length+' / '+advCap()+'人（住民 '+residents()+'人）。家を建てると住みついてくれます。</p><div class="list">'+(list.length?list.map(a=>rowHTML(a.id,esc(a.name)+(a.res?' <span style="color:#e04a8a">住民</span>':''),esc(jobName(a))+' Lv'+a.lv+'・'+esc(advStatus(a))+'<span class="bar hp"><i style="width:'+Math.round(a.hp/a.maxHp*100)+'%"></i></span>',fmt(a.gold)+'G','')).join(''):'<p class="lead">まだだれも来ていません。人気が上がると、冒険者が来やすくなります。</p>')+'</div>';
+    $('#pbody').innerHTML='<p class="lead">冒険者 '+S.advs.length+' / '+advCap()+'人（住民 '+residents()+'人）。上限は 宿屋1つで+2・温泉+1・家はLv+1人ずつ・村ランクで増えます（最大'+ADV_MAX+'人）。</p><div class="list">'+(list.length?list.map(a=>rowHTML(a.id,esc(a.name)+(a.res?' <span style="color:#e04a8a">住民</span>':''),esc(jobName(a))+' Lv'+a.lv+'・'+esc(advStatus(a))+'<span class="bar hp"><i style="width:'+Math.round(a.hp/a.maxHp*100)+'%"></i></span>',fmt(a.gold)+'G','')).join(''):'<p class="lead">まだだれも来ていません。人気が上がると、冒険者が来やすくなります。</p>')+'</div>';
     const root=$('#pbody');fillRows(root,id=>faceCanvas(advById(+id)));root.querySelectorAll('.row').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>openAdv(+r.dataset.id)});
   };
   openPanel('冒険者',' ',live);
@@ -1670,7 +1671,7 @@ function openScout(){
   const weak=S.advs.filter(a=>!a.res&&!a.pid&&a.state!=='dungeon').sort((p,q)=>power(p)-power(q))[0];
   const lvMin=3+S.rank*3+WORLDS[S.world].lv0-1;
   let html='<p class="lead">ダイア'+cost+'で、腕のいい冒険者をスカウトします（Lv'+lvMin+'〜'+(lvMin+2)+'くらい・おこづかい多め）。いまのダイア：'+S.dia+'</p>';
-  if(full&&!weak)html+='<p class="lead" style="color:#c04a10">村がいっぱいで、入れかえられる旅の冒険者もいません（住民は入れかえられません）。宿屋や家を建てると上限が増えます（最大20人）。</p>';
+  if(full&&!weak)html+='<p class="lead" style="color:#c04a10">村がいっぱいで、入れかえられる旅の冒険者もいません（住民は入れかえられません）。宿屋や家を建てると上限が増えます（最大'+ADV_MAX+'人）。</p>';
   else if(full)html+='<p class="lead" style="color:#c04a10">村がいっぱい（'+S.advs.length+'/'+advCap()+'人）です。いちばん弱い旅の冒険者「'+esc(weak.name)+'」（'+esc(jobName(weak))+' Lv'+weak.lv+'）が旅立ち、かわりに新しい冒険者が来ます。</p>';
   html+='<div class="btns"><button type="button" class="btn blue" id="scgo"'+(S.dia<cost||(full&&!weak)?' aria-disabled="true"':'')+'>'+(full?'入れかえてスカウト':'スカウトする')+'（ダイア'+cost+'）</button></div>';
   openPanel('スカウト',html);
@@ -1824,7 +1825,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105132848',shown=false;
+  var BUILD='20261105141005',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
