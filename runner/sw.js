@@ -1,6 +1,6 @@
 // そらかけランナー Service Worker
 // ネット優先：つながっていれば毎回最新版を取りに行き、オフラインのときだけ保存した版を使う。
-const VERSION = '20261105152425';
+const VERSION = '20261105153210';
 const CACHE = 'sorakake-runner-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
