@@ -57,8 +57,10 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
 .fame .fb{position:absolute;right:4px;bottom:4px;width:96px;height:9px;background:#10205a;border:2px solid #fff;border-radius:2px;overflow:hidden}
 .fame .fb u{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,#ffe040 0 3px,#ffb020 3px 5px)}
 .placebar{position:absolute;left:8px;right:8px;top:118px;z-index:6;display:flex;justify-content:center;pointer-events:none}
-.placebar div{pointer-events:none;opacity:.94}
-.placebar button{pointer-events:auto}
+.placebar div{pointer-events:none;opacity:.94;font-size:13px;padding:4px 6px 4px 10px;gap:6px}
+.placebar button{padding:2px 8px}
+.placebar button{pointer-events:auto;white-space:nowrap}
+.placebar #placeok{background:#ffd860;font-weight:400}
 .placebar div{display:flex;align-items:center;gap:10px;background:#fff8e6;border:3px solid #c0742a;border-radius:6px;padding:5px 8px 5px 12px;font-size:14px;box-shadow:0 3px 0 #0005}
 .placebar button{border:2px solid #8a3e12;background:#f6c98a;border-radius:6px;padding:2px 10px}
 #toast{position:absolute;left:8px;right:8px;top:118px;z-index:7;display:flex;justify-content:center;pointer-events:none}
@@ -157,7 +159,7 @@ button:focus-visible{outline:3px solid #46c8ff;outline-offset:1px}
       <button type="button" class="dchip o" id="dchip" aria-label="ダンジョンのようす"><canvas id="ic-dun" width="14" height="14"></canvas><b id="dpct">--</b><i><u id="dbar"></u></i></button>
     </div>
     <div class="fame" aria-label="人気"><canvas class="wheel" id="ic-wheel" width="28" height="28"></canvas><span class="lb o">人気</span><span class="num o" id="fame">0</span><span class="fb"><u id="fbar"></u></span></div>
-    <div class="placebar" id="placebar" hidden><div><span id="placet"></span><button type="button" id="placex">やめる</button></div></div>
+    <div class="placebar" id="placebar" hidden><div><span id="placet"></span><button type="button" id="placeflip" hidden>向き</button><button type="button" id="placeok" hidden>ここに置く</button><button type="button" id="placex">やめる</button></div></div>
     <div id="toast" aria-live="polite"></div>
     <div class="ovl" id="panel" hidden><div class="wood" role="dialog" aria-labelledby="ptitle"><div class="plate o" id="ptitle"></div><div class="tabs" id="ptabs" role="tablist" hidden></div><div class="pbody" id="pbody"></div></div></div>
     <div id="res" hidden></div>
@@ -1103,7 +1105,7 @@ function clampCam(){
   camX=x1-x0<=VW?(x0+x1-VW)/2:clamp(camX,x0,x1-VW);
   camY=y1-y0<=VH?(y0+y1-VH)/2:clamp(camY,y0,y1-VH);
 }
-let placing=null,sel=null,cursor=null,moving=null,camTo=null;
+let placing=null,sel=null,cursor=null,moving=null,camTo=null,pend=null,buildFlip=false;
 function focusTile(c,r,fy){camTo={x:(c-r)*HW-VW/2,y:(c+r)*HH+HH-VH*(fy||.5)}}
 function drawWorld(t){
   g=BUFC;const se=season();
@@ -1119,7 +1121,7 @@ function drawWorld(t){
   const items=[];
   for(let r=-14;r<GH+5;r++)for(let c=-5;c<GW+7;c++){
     const sx=(c-r)*HW,sy=(c+r)*HH;if(!vis(sx,sy,50))continue;
-    if(inMap(c,r)){const x=S.grid[r][c];if(x&&!BLD[x.b].road){const v=hash(c,r);items.push({z:c+r,f:()=>{const im=bSprite(x.b,x.lv,x.v!=null?x.v:v);if(x.flip){g.save();g.translate(sx,0);g.scale(-1,1);g.drawImage(im,-AX,sy-AY);g.restore()}else g.drawImage(im,sx-AX,sy-AY);animB(x,sx,sy,t)}})}continue}
+    if(inMap(c,r)){const x=S.grid[r][c];if(x&&!BLD[x.b].road){const v=hash(c,r);items.push({z:c+r,f:()=>{const im=bSprite(x.b,x.lv,x.v!=null?x.v:v);const fade=moving&&pend&&moving.c===c&&moving.r===r;if(fade)g.globalAlpha=.3;if(x.flip){g.save();g.translate(sx,0);g.scale(-1,1);g.drawImage(im,-AX,sy-AY);g.restore()}else g.drawImage(im,sx-AX,sy-AY);g.globalAlpha=1;animB(x,sx,sy,t)}})}continue}
     const ring=(c>=-1&&c<=GW&&r>=-1&&r<=GH)&&(c===-1||c===GW||r===-1||r===GH);
     if(ring){if(c===GATE.c&&r===GATE.r){items.push({z:c+r,f:()=>g.drawImage(gateSpr(),sx-20,sy-42)});continue}
       if(c===RC&&r===GH){items.push({z:c+r+.5,f:()=>g.drawImage(archSpr(),sx-20,sy-30)});continue}
@@ -1135,6 +1137,13 @@ function drawWorld(t){
   S.advs.forEach(a=>{if(!inVillage(a)||a.state==='in')return;const sx=Math.round(sxOf(a.x,a.y)),sy=Math.round(syOf(a.x,a.y));if(!vis(sx,sy,20))return;items.push({z:a.x+a.y+.02,f:()=>{drawAdv(a,t,sx,sy,['walk','fight','hunt','ret','call'].includes(a.state));if(a.state==='hunt'||a.state==='fight'||(a.hp<a.maxHp&&(a.state==='ret'||a.state==='call')))hpBar(sx,sy-14,a.hp/a.maxHp,true)}})});
   mobs.forEach(m=>{const sx=Math.round(sxOf(m.x,m.y)),sy=Math.round(syOf(m.x,m.y));if(vis(sx,sy,20))items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,sx,sy,t,m.flash>0,m.dir,(m.hp<m.maxHp||m.aggro)?m.hp/m.maxHp:null)})});
   if(raid)raid.mons.forEach(m=>{if(m.hp>0)items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,Math.round(sxOf(m.x,m.y)),Math.round(syOf(m.x,m.y)),t,m.flash>0,m.dir,m.hp/m.maxHp)})});
+  {let gk=null,gc=null,gf=false,glv=1,gv=7;
+    if(!$('#panel').hidden&&panelKind==='build'&&buildAt&&buildSel&&!BLD[buildSel].road&&unlocked(buildSel)&&BLD[buildSel].rank<=S.rank){gk=buildSel;gc=buildAt;gf=buildFlip;gv=hash(buildAt.c,buildAt.r)}
+    else if(placing&&pend&&!BLD[placing].road){gk=placing;gc=pend;gf=buildFlip;gv=hash(pend.c,pend.r)}
+    else if(moving&&pend){const x=cell(moving.c,moving.r);if(x){gk=x.b;gc=pend;gf=!!x.flip;glv=x.lv;gv=x.v!=null?x.v:hash(moving.c,moving.r)}}
+    if(gk){const sx=(gc.c-gc.r)*HW,sy=(gc.c+gc.r)*HH,im=bSprite(gk,glv,gv),al=.55+.15*Math.sin(t*6);
+      items.push({z:gc.c+gc.r+.01,f:()=>{g.globalAlpha=al;if(gf){g.save();g.translate(sx,0);g.scale(-1,1);g.drawImage(im,-AX,sy-AY);g.restore()}else g.drawImage(im,sx-AX,sy-AY);g.globalAlpha=1}});
+      items.push({z:-999,f:()=>{g.globalAlpha=.5;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),sx-HW,sy);g.globalAlpha=1;g.drawImage(hlSpr('#fff070'),sx-HW,sy)}})}}
   items.sort((p,q)=>p.z-q.z).forEach(i=>i.f());
   if(cursor){const sx=(cursor.c-cursor.r)*HW,sy=(cursor.c+cursor.r)*HH,on=Math.floor(t*4)%2;g.drawImage(hlSpr('#ffe040'),sx-HW,sy);if(on)g.drawImage(hlSpr('#ffffff'),sx-HW,sy);g.globalAlpha=.35;g.drawImage(spr('fill',28,14,()=>diam(14,7,14,'#fff070')),sx-HW,sy);g.globalAlpha=1;
     const cb=inMap(cursor.c,cursor.r)&&S.grid[cursor.r][cursor.c],hi=cb&&!BLD[cb.b].road?(BLD[cb.b].deco?24:33):12;const b=Math.round(Math.abs(Math.sin(t*5))*3),ay=sy-hi-b;P(sx-3,ay,7,4,'#ffffff');P(sx-2,ay+4,5,1,'#ffffff');P(sx-1,ay+5,3,1,'#ffffff');P(sx,ay+6,1,1,'#ffffff');P(sx-2,ay+1,5,2,'#ff7a2a');P(sx-1,ay+3,3,1,'#ff7a2a');P(sx,ay+4,1,1,'#ff7a2a')}
@@ -1344,7 +1353,7 @@ function needText(k){const nd=BLD[k].need;return Object.keys(nd).map(i=>ITEMS[i]
 function hasNeed(k){const nd=BLD[k].need;return Object.keys(nd).every(i=>(S.items[i]||0)>=nd[i])}
 
 let buildTab=0,buildSel=null,buildAt=null;
-function openBuild(at){buildAt=at;buildSel=null;panelKind='build';renderBuild()}
+function openBuild(at){buildAt=at;buildSel=null;buildFlip=false;panelKind='build';renderBuild()}
 function renderBuild(){
   const tabs=CATS.map((c,i)=>'<button type="button" class="tab" role="tab" aria-selected="'+(i===buildTab)+'" data-t="'+i+'">'+c+'</button>').join('');
   const types=Object.keys(BLD).filter(k=>BLD[k].cat===buildTab&&bAvail(k));
@@ -1361,9 +1370,11 @@ function showBuildDetail(){
   let btn='';
   if(lockR)info='村ランク「'+RANKS[d.rank].n+'」で解放されます。'+info;
   else if(lockI){info='研究に必要：'+esc(needText(k))+'。'+info;btn='<button type="button" class="btn blue" id="bdo"'+(hasNeed(k)?'':' aria-disabled="true"')+'>研究する</button>'}
-  else btn='<button type="button" class="btn" id="bdo"'+(S.gold<d.cost?' aria-disabled="true"':'')+'>建てる</button>';
+  else btn=(d.road?'':'<button type="button" class="btn blue" id="bflip2">向き</button>')+'<button type="button" class="btn" id="bdo"'+(S.gold<d.cost?' aria-disabled="true"':'')+'>建てる</button>';
   box.innerHTML='<div class="detail"><p><b>'+esc(d.n)+'</b><br>'+info+'</p>'+btn+'</div>';
   const bt=$('#bdo');if(bt)bt.onclick=()=>doBuild(k);
+  const bf=$('#bflip2');if(bf)bf.onclick=()=>{buildFlip=!buildFlip;sfx('tap')};
+  const pv=$('#pbody').querySelector('.card[aria-pressed="true"] canvas');
   box.scrollIntoView&&box.scrollIntoView({block:'nearest'});
 }
 function doBuild(k){
@@ -1372,17 +1383,29 @@ function doBuild(k){
   if(!unlocked(k)){if(!hasNeed(k)){sfx('no');toast('アイテムが足りない','ダンジョンで「'+needText(k)+'」を集めよう');return}
     Object.keys(d.need).forEach(i=>S.items[i]-=d.need[i]);S.unl[k]=true;sfx('rank');toast('研究完了！','「'+d.n+'」が建てられるようになった');log(d.n+'の研究が完了した');renderBuild();buildSel=k;showBuildDetail();save();return}
   if(S.gold<d.cost){sfx('no');toast('お金が足りない','あと '+fmt(d.cost-S.gold)+'G 必要です');return}
-  if(buildAt){const at=buildAt;build(k,at.c,at.r);closePanel();if(d.road){focusTile(at.c,at.r,.5);placing=k;$('#placet').textContent=d.n+'をしく場所を続けてタップ（もう一度タップで消す）';$('#placebar').hidden=false}}
-  else{closePanel();placing=k;$('#placet').textContent=d.n+'（'+fmt(d.cost)+'G）を'+(d.road?'しく場所を続けてタップ（もう一度タップで消す）':'建てる空き地をタップ（もう一度タップで消す）');$('#placebar').hidden=false}
+  if(buildAt){const at=buildAt;build(k,at.c,at.r,buildFlip);closePanel();if(d.road){focusTile(at.c,at.r,.5);placing=k;pend=null;setPlacebar()}}
+  else{closePanel();placing=k;pend=null;setPlacebar()}
 }
-$('#placex').onclick=()=>{placing=null;moving=null;$('#placebar').hidden=true};
+function setPlacebar(){
+  const pb=$('#placebar');pb.hidden=false;
+  if(placing){const d=BLD[placing];
+    $('#placet').textContent=d.road?d.n+'をしく場所を続けてタップ（もう一度タップで消す）':pend?'もう一度タップで決定':d.n+'を置く場所をタップ';
+    $('#placeflip').hidden=!!d.road;$('#placeok').hidden=!(pend&&!d.road)}
+  else if(moving){const x=cell(moving.c,moving.r);
+    $('#placet').textContent=pend?'もう一度タップで決定':'移動先をタップ';
+    $('#placeflip').hidden=false;$('#placeok').hidden=!pend}
+}
+function endPlace(){placing=null;moving=null;pend=null;$('#placebar').hidden=true}
+$('#placex').onclick=()=>{endPlace()};
+$('#placeflip').onclick=()=>{sfx('tap');if(moving){const x=cell(moving.c,moving.r);if(x){x.flip=!x.flip;save()}}else buildFlip=!buildFlip};
+$('#placeok').onclick=()=>{if(!pend)return;if(moving)moveB(moving.c,moving.r,pend.c,pend.r);else if(placing){const k=placing;if(build(k,pend.c,pend.r,buildFlip))endPlace();else sfx('no')}};
 function unplace(c,r){
   const x=S.grid[r][c];if(!x)return;S.grid[r][c]=null;S.gold+=BLD[x.b].cost;
   S.advs.forEach(a=>{if(a.inB&&a.inB.c===c&&a.inB.r===r){a.inB=null;a.state='idle';a.timer=.3}if(a.home&&a.home.c===c&&a.home.r===r)a.home=null;
     if(a.state==='walk'&&a.then&&a.then.k==='enter'&&a.then.c===c&&a.then.r===r){a.state='idle';a.path=null;a.then=null;a.timer=.3}});
   sfx('poof');puff((c-r)*HW,(c+r)*HH+HH-2);refreshCombos(true);updateUI();save();
 }
-function endMove(){moving=null;$('#placebar').hidden=true}
+function endMove(){endPlace()}
 function moveB(fc,fr,tc,tr){
   const x=S.grid[fr][fc];if(!x){endMove();return}
   if(x.v==null)x.v=hash(fc,fr);
@@ -1393,9 +1416,9 @@ function moveB(fc,fr,tc,tr){
   sfx('build');const sx=(tc-tr)*HW,sy=(tc+tr)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
   log(BLD[x.b].n+'を移動した');refreshCombos(false);endMove();updateUI();save();
 }
-function build(k,c,r){
+function build(k,c,r,flip){
   const d=BLD[k];if(!inMap(c,r)||S.gold<d.cost||S.grid[r][c]||isRoad(c,r)||!unlocked(k)||d.rank>S.rank)return false;
-  S.gold-=d.cost;S.grid[r][c]={b:k,lv:1,v:hash(c,r)};sfx('build');const sx=(c-r)*HW,sy=(c+r)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
+  S.gold-=d.cost;S.grid[r][c]={b:k,lv:1,v:hash(c,r)};if(flip&&!d.road)S.grid[r][c].flip=true;sfx('build');const sx=(c-r)*HW,sy=(c+r)*HH+HH;for(let i=0;i<8;i++)puffs.push({x:sx+(Math.random()-.5)*16,y:sy,vx:(Math.random()-.5)*20,vy:-Math.random()*15,t:0});
   log(d.n+'を建てた');refreshCombos(false);
   S.advs.forEach(a=>{if(a.path&&!a.path.every(q=>walkable(q.x,q.y)))a.state='idle'});
   updateUI();save();return true;
@@ -1422,7 +1445,7 @@ function openBuildingInfo(c,r){
     const up=$('#bup');if(up)up.onclick=()=>{if(S.gold<cost){sfx('no');return}S.gold-=cost;lvUp()};
     const ud=$('#bupd');if(ud)ud.onclick=()=>{if(S.dia<dc){sfx('no');toast('ダイアが足りない','ダンジョンの探検でダイアポイントが手に入ります');return}S.dia-=dc;lvUp()};
     $('#bflip').onclick=()=>{y.flip=!y.flip;sfx('tap');save();live()};
-    $('#bmove').onclick=()=>{sfx('tap');closePanel();moving={c,r};placing=null;$('#placet').textContent=d.n+'の移動先の空き地をタップ';$('#placebar').hidden=false};
+    $('#bmove').onclick=()=>{sfx('tap');closePanel();moving={c,r};placing=null;pend=null;focusTile(c,r,.55);setPlacebar()};
     $('#bdel').onclick=()=>{const btn=$('#bdel');if(!btn.dataset.sure){btn.dataset.sure='1';btn.textContent='本当に取りこわす';return}
       S.grid[r][c]=null;S.gold+=Math.round(d.cost*.3);S.advs.forEach(a=>{if(a.inB&&a.inB.c===c&&a.inB.r===r)leaveBuilding(a);if(a.home&&a.home.c===c&&a.home.r===r){a.home=null}});refreshCombos(true);sfx('poof');log(d.n+'を取りこわした');closePanel();updateUI();save()};
   };
@@ -1600,9 +1623,9 @@ function tap(clientX,clientY){const rc=cv.getBoundingClientRect();tapLocal(clien
 function tapAt(ax,ay){
   ripple={x:ax,y:ay,t:0};
   const c=Math.floor((ax/HW+ay/HH)/2),r=Math.floor((ay/HH-ax/HW)/2);
-  if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){moveB(moving.c,moving.r,c,r)}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
+  if(moving){if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){if(pend&&pend.c===c&&pend.r===r)moveB(moving.c,moving.r,c,r);else{pend={c,r};sfx('tap');setPlacebar()}}else if(c===moving.c&&r===moving.r){endMove()}else sfx('no');return}
   if(placing){const ex=inMap(c,r)&&S.grid[r][c];if(ex&&ex.b===placing&&ex.lv===1){unplace(c,r);return}
-    if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){const k=placing;if(!build(k,c,r))sfx('no')}else sfx('no');return}
+    if(inMap(c,r)&&!isRoad(c,r)&&!S.grid[r][c]){const k=placing;if(BLD[k].road){if(!build(k,c,r))sfx('no')}else if(pend&&pend.c===c&&pend.r===r){if(build(k,c,r,buildFlip))endPlace();else sfx('no')}else{pend={c,r};sfx('tap');setPlacebar()}}else sfx('no');return}
   const hitA=S.advs.filter(a=>inVillage(a)&&a.state!=='in').map(a=>({a,sx:sxOf(a.x,a.y),sy:syOf(a.x,a.y)})).filter(o=>Math.abs(o.sx-ax)<6&&ay>o.sy-14&&ay<o.sy+3).sort((p,q)=>(q.a.x+q.a.y)-(p.a.x+p.a.y))[0];
   if(hitA){sfx('tap');selectAdv(hitA.a.id);return}
   const bs=allB().sort((p,q)=>(q.c+q.r)-(p.c+p.r));
@@ -1619,7 +1642,7 @@ $('#lanebox').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.
 $('#dchip').onclick=()=>{sfx('tap');openDun()};
 $('#zoom').onclick=()=>{sfx('tap');zoomOut=!zoomOut;const cx=camX+VW/2,cy=camY+VH/2;resize();camX=cx-VW/2;camY=cy-VH/2;clampCam()};
 $('#bL').onclick=()=>{save();sfx('level');toast('セーブしました',dateText()+'・'+RANKS[S.rank].n)};
-$('#bR').onclick=()=>{sfx('tap');if(moving||placing){moving=null;placing=null;$('#placebar').hidden=true}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
+$('#bR').onclick=()=>{sfx('tap');if(moving||placing){endPlace()}if(!$('#panel').hidden){if(panelKind==='adv'||panelKind==='items'||panelKind==='dun'||panelKind==='advs'||panelKind==='goal'||panelKind==='combo'||panelKind==='log'||panelKind==='build'||panelKind==='exp'||panelKind==='map'){const fromMenu=lastFromMenu;closePanel();if(fromMenu)openMenu()}else closePanel()}else{lastFromMenu=true;openMenu()}};
 let lastFromMenu=false;
 ['#dchip','#lanebox','#selbar'].forEach(s=>$(s).addEventListener('click',()=>{lastFromMenu=false},true));
 cv.addEventListener('pointerdown',()=>{lastFromMenu=false},true);
@@ -1658,7 +1681,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105115202',shown=false;
+  var BUILD='20261105115808',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
