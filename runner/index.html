@@ -250,7 +250,7 @@ button:focus-visible{outline:3px solid #ffe04a;outline-offset:2px}
 <div class="screen dim" id="sCont" hidden>
   <div class="resbox woodbox" style="background:var(--cream)"><span class="ribbon o">つづける？</span><p id="cTxt" style="margin:6px 0"></p><div class="trow"><button type="button" class="btn g" id="cYes">ジェム1つでつづける</button><button type="button" class="btn" id="cNo">おわる</button></div></div>
 </div>
-<div class="screen dim" id="sPause" hidden><div class="resbox woodbox" style="background:var(--cream)"><span class="ribbon o">ひと休み</span><div class="trow"><button type="button" class="btn g" id="uRes">つづける</button><button type="button" class="btn" id="uQuit">やめる</button></div></div></div>
+<div class="screen dim" id="sPause" hidden><div class="resbox woodbox" style="background:var(--cream)"><span class="ribbon o">ひと休み</span><div class="trow"><button type="button" class="btn g" id="uRes">つづける</button><button type="button" class="btn" id="uQuit">やめる</button></div><p id="errLog" style="font-size:10px;color:#a86a40;margin:6px 0 0;max-width:340px;word-break:break-all"></p></div></div>
 <div class="screen dim" id="sGacha" hidden style="z-index:40"><div class="resbox woodbox" style="background:var(--cream)"><span class="ribbon o">召喚！</span><canvas id="gaCv" width="40" height="40" style="width:120px;height:120px;image-rendering:auto"></canvas><div id="gaTxt" style="font-family:var(--pop);font-size:20px"></div><button type="button" class="btn g" id="gaOk">OK</button></div></div>
 <div id="rot" hidden><div style="font-size:40px">📱↻</div><div>スマホを横にしてね</div></div>
 
@@ -487,8 +487,8 @@ function E(x,y,rx,ry,fill,lw,rot){g.beginPath();g.ellipse(x,y,Math.abs(rx)+.001,
 function B(fn,fill,lw){g.beginPath();fn();if(fill){g.fillStyle=fill;g.fill()}if(lw){g.lineWidth=lw;g.strokeStyle=OL;g.lineJoin='round';g.lineCap='round';g.stroke()}}
 function LN(pts,col,w){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);g.lineCap='round';g.lineJoin='round';g.lineWidth=w+1.1;g.strokeStyle=OL;g.stroke();g.lineWidth=w;g.strokeStyle=col;g.stroke()}
 function SL(pts,col,w){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];g.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2)}const l=pts[pts.length-1];g.lineTo(l[0],l[1]);g.lineCap='round';g.lineJoin='round';g.lineWidth=w+1.1;g.strokeStyle=OL;g.stroke();g.lineWidth=w;g.strokeStyle=col;g.stroke()}
-function lg(x0,y0,x1,y1,c0,c1){const r=g.createLinearGradient(x0,y0,x1,y1);r.addColorStop(0,c0);r.addColorStop(1,c1);return r}
-function rg(x,y,r,c0,c1){const q=g.createRadialGradient(x,y,0,x,y,Math.max(.01,r));q.addColorStop(0,c0);q.addColorStop(1,c1);return q}
+function lg(x0,y0,x1,y1,c0,c1){if(!Number.isFinite(x0+y0+x1+y1))return c1;const r=g.createLinearGradient(x0,y0,x1,y1);r.addColorStop(0,c0);r.addColorStop(1,c1);return r}
+function rg(x,y,r,c0,c1){if(!Number.isFinite(x+y+r))return c1;const q=g.createRadialGradient(x,y,0,x,y,Math.max(.01,r));q.addColorStop(0,c0);q.addColorStop(1,c1);return q}
 const HIRES=10;
 function withCtx(c,fn){
   if(!c.dataset.lw){c.dataset.lw=c.width;c.dataset.lh=c.height;const cs=getComputedStyle(c);if(!cs.width||cs.width==='auto'||cs.width===c.width+'px'){c.style.width=c.width+'px';c.style.height=c.height+'px'}c.width=c.width*HIRES;c.height=c.height*HIRES}
@@ -903,8 +903,8 @@ function update(dt){
     else{R.it[it.k]=upVal(it.k)+(it.k==='magnet'?(Pt.mg||0)*petK(SV.pet):0)+(it.k==='fly'?(Pt.flyp||0):0);toast({magnet:'星磁石！',bridge:'雲の橋！',giant:'巨人化！',fly:'飛行！'}[it.k]);if(it.k==='fly'){for(let i=0;i<Math.floor(R.it.fly*R.speed/16);i++)S(R.x+80+i*16,40+Math.sin(i*.5)*10)}}
     return false}return true});
   // meteors
-  if(R.dist>1500&&!R.it.dash&&R.feverT<=0&&R.spurt<=0){R.metT-=dt;if(R.metT<=0){const n=R.dist>6000&&Math.random()<.5?2:1;const ys=[30,52,74,96].sort(()=>Math.random()-.5).slice(0,n);ys.forEach((y,i)=>R.warns.push({y,t:1.2+i*.35}));R.metT=rr(6,11)-Math.min(3,R.dist/6000);sfx('no')}}
-  R.warns=R.warns.filter(w=>{w.t-=dt;if(w.t<=0){R.enemies.push({k:'meteor',x:R.x+W*(1-PX)+16,y:w.y,vx:-(R.speed+230)});return false}return true});
+  if(R.dist>3000&&!R.it.dash&&R.feverT<=0&&R.spurt<=0){R.metT-=dt;if(R.metT<=0){const n=R.dist>6000&&Math.random()<.5?2:1;const ys=[30,52,74,96].sort(()=>Math.random()-.5).slice(0,n);ys.forEach((y,i)=>R.warns.push({y,t:1.6+i*.6}));R.metT=rr(6,11)-Math.min(3,R.dist/6000);sfx('no')}}
+  R.warns=R.warns.filter(w=>{w.t-=dt;if(w.t<=0){R.enemies.push({k:'meteor',x:R.x+W*(1-PX)+16,y:w.y,vx:-45});return false}return true});
   // enemies
   const invul=R.feverT>0||R.it.giant>0||R.it.dash||R.it.fly>0||R.spurt>0;
   R.enemies=R.enemies.filter(e=>{if(e.x<R.x-W||e.dead>.5)return false;if(e.dead){e.dead+=dt;e.x+=e.vx2*dt;e.y+=e.vy2*dt;e.vy2+=400*dt;return true}
@@ -1077,7 +1077,7 @@ function endRun(){
 }
 function togglePause(p){if(state!=='run')return;paused=p;$('#sPause').hidden=!p;if(AU.ctx){if(p)AU.ctx.suspend();else AU.ctx.resume()}}
 $('#pauseB').onclick=e=>{e.stopPropagation();togglePause(true)};
-$('#uRes').onclick=()=>togglePause(false);$('#uQuit').onclick=()=>{togglePause(false);if(R){R.continued=true;die('quit')}};
+$('#uRes').onclick=()=>togglePause(false);$('#uQuit').onclick=()=>{togglePause(false);if(R){R.continued=true;R.lastSp=0;R.spurt=0;R.relayUsed=true;die('quit')}};
 $('#tGo').onclick=()=>{sfx('tap');openShop()};
 $('#tBgm').onclick=()=>setSnd('bgm');$('#tSfx').onclick=()=>setSnd('sfx');
 $('#rAgain').onclick=()=>{sfx('tap');startRun()};$('#rShop').onclick=()=>{sfx('tap');openShop()};
@@ -1170,7 +1170,14 @@ icon($('#fvIc'),'wstar');icon($('#coinIc'),'gold');
 
 /* ---- loop ---- */
 let last=performance.now();
-function frame(tm){const dt=Math.min(.05,(tm-last)/1000);last=tm;const t=tm/1000;if(state==='run'&&!paused)update(dt);render(t);present(t);requestAnimationFrame(frame)}
+let errN=0;
+function logErr(where,e){errN++;try{const m=where+': '+(e&&e.message||e)+' '+String(e&&e.stack||'').split('\n').slice(1,3).join(' ');localStorage.setItem('sorakake-lasterr',new Date().toLocaleString()+' '+m.slice(0,300));const el=$('#errLog');if(el)el.textContent='エラー記録：'+m.slice(0,160)}catch(_){}}
+function sanitize(){if(!R)return;const ok=v=>Number.isFinite(v);if(!ok(R.y)||!ok(R.vy)){R.y=GY-50;R.vy=0;R.onG=false;R.it.bridge=Math.max(R.it.bridge||0,2);R.inv=Math.max(R.inv,1.5)}if(!ok(R.petX)||!ok(R.petY)){R.petX=-30;R.petY=R.y}
+  ['inv','feverT','fever','spurt','score','dist','hitT'].forEach(k=>{if(R[k]!=null&&!ok(R[k]))R[k]=0});R.enemies=R.enemies.filter(e=>ok(e.x)&&ok(e.y));R.stars=R.stars.filter(q=>ok(q.x)&&ok(q.y));R.parts=R.parts.filter(q=>ok(q.x)&&ok(q.y))}
+function frame(tm){requestAnimationFrame(frame);const dt=clamp((tm-last)/1000,0,.05);last=tm;const t=tm/1000;
+  if(state==='run'&&!paused){try{update(dt)}catch(e){logErr('update',e)}sanitize()}
+  try{render(t)}catch(e){logErr('render',e);try{ctx.restore();ctx.restore()}catch(_){}sanitize()}
+  try{present(t)}catch(e){logErr('present',e)}}
 resize();toTitle();requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='run'&&!paused)togglePause(true)});
 window.__sr={get R(){return R},get SV(){return SV},startRun:()=>{newRun();state='run';paused=false;show(null);$('#hud').hidden=false;hpShown=-1},update,press,release,render,endRun,get state(){return state},openShop,openList,gacha,startRunLoad:startRun};
@@ -1180,7 +1187,7 @@ window.__sr={get R(){return R},get SV(){return SV},startRun:()=>{newRun();state=
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:12px;padding:8px 16px;font-family:'Mochiy Pop One',sans-serif;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105155000',shown=false;
+  var BUILD='20261105160309',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   function check(first){
     fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
