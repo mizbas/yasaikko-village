@@ -1331,6 +1331,17 @@ function onNewWeek(){
 function SPR_season(){} // sprites are keyed by season already
 
 /* ---------- HUD ---------- */
+function refreshAfford(){
+  const pb=$('#pbody');if(!pb)return;
+  if(panelKind==='build'){
+    pb.querySelectorAll('.card').forEach(cd=>{const d=BLD[cd.dataset.k],g=cd.querySelector('.gd');if(!d||!g)return;g.style.color=S.gold<d.cost&&d.rank<=S.rank?'#ff7a7a':''});
+    const bt=$('#bdo');if(bt&&buildSel&&unlocked(buildSel)){const d=BLD[buildSel];bt.setAttribute('aria-disabled',S.gold<d.cost?'true':'false')}
+  }else if(panelKind==='lvlist'){
+    pb.querySelectorAll('.row[data-c]').forEach(rw=>{const x=cell(+rw.dataset.c,+rw.dataset.r),b=rw.querySelector('[data-up]');if(x&&b)b.setAttribute('aria-disabled',S.gold<upCost(x)?'true':'false')});
+  }else if(panelKind==='binfo'){
+    const sb=sel&&sel.k==='b'&&cell(sel.c,sel.r);if(sb){const u=$('#bup');if(u)u.setAttribute('aria-disabled',S.gold<upCost(sb)?'true':'false');const y=$('#lvyes');if(y)y.setAttribute('aria-disabled',S.gold<upCost(sb)?'true':'false');const ud=$('#bupd');if(ud)ud.setAttribute('aria-disabled',S.dia<upDia(sb)?'true':'false')}
+  }else if(panelKind==='scout'){const b=$('#scgo');if(b&&!/入れかえ/.test(b.textContent)||b&&S.advs.length>=advCap())b.setAttribute('aria-disabled',S.dia<5?'true':'false')}
+}
 function updateUI(){
   $('#money').textContent=fmt(S.gold)+'G';$('#dia').textContent=fmt(S.dia);
   $('#pop').textContent=S.advs.length+'/'+advCap();
@@ -1340,6 +1351,7 @@ function updateUI(){
   if(seasonShown!==season())paintSeason();
   if(sel&&sel.k==='a')paintSel();
   liveAcc++;if(!$('#panel').hidden&&panelLive&&liveAcc%3===0)panelLive();
+  if(!$('#panel').hidden)refreshAfford();
 }
 
 /* ---------- tiny icon canvases ---------- */
@@ -1812,7 +1824,7 @@ start();
 <div id="upd" hidden style="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#fff8e6;border:3px solid #8a5a22;border-radius:8px;padding:8px 14px;font-family:'DotGothic16',monospace;font-size:14px;color:#4a2a0c;box-shadow:0 4px 0 #0006;white-space:nowrap;cursor:pointer">新しいバージョンがあります。タップで更新</div>
 <script>
 (function(){
-  var BUILD='20261105125341',shown=false;
+  var BUILD='20261105132848',shown=false;
   function show(){if(shown)return;shown=true;var b=document.getElementById('upd');b.hidden=false;b.onclick=function(){location.reload()}}
   // 起動直後とアプリに戻ってきたときに、最新版の番号をサーバーに聞く（キャッシュを使わない）
   function check(first){
