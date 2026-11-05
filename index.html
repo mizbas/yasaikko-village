@@ -923,6 +923,7 @@ function drawAdv(a,t,x,y,moving){
   if(a.res&&!a.promo)P(ox+3,oy2-2,1,1,'#ff9fb8');
   if(a.bub&&a.bub.t>0){P(ox-1,oy2-9,9,8,'#ffffff');P(ox+2,oy2-1,2,1,'#ffffff');P(ox-1,oy2-9,9,1,'#d8dde6');icon(a.bub.ic,ox+1,oy2-8)}
 }
+function hpBar(x,y,r,ally){r=clamp(r,0,1);P(x-6,y-1,12,4,'#1a1420');P(x-5,y,10,2,'#5a4a5a');const c=ally?(r>.5?'#5ae05a':r>.25?'#ffd040':'#ff5040'):'#ff6a4a';P(x-5,y,Math.max(r>0?1:0,Math.round(10*r)),2,c);P(x-5,y,Math.round(10*r),1,ally?(r>.5?'#b0ffb0':r>.25?'#fff0a0':'#ffb0a0'):'#ffb8a0')}
 function drawMon(k,x,y,t,fl,dir,hpR){
   const f=Math.floor(t*6)%2;P(x-4,y,8,1,'#00000035');
   if(k==='mole'){const c=fl?'#fff':'#6e5444';P(x-4,y-6-f,8,6,c);P(x-3,y-7-f,6,1,c);P(x-1,y-4-f,2,1,'#f28a9a');P(x-3,y-5-f,1,1,'#111');P(x+2,y-5-f,1,1,'#111');P(x-5,y-2,2,1,'#f3b7b0');P(x+3,y-2,2,1,'#f3b7b0')}
@@ -930,7 +931,7 @@ function drawMon(k,x,y,t,fl,dir,hpR){
   else if(k==='imo'){const c=fl?'#fff':'#8ad040';for(let i=0;i<4;i++)P(x-5+i*3,y-4-((i+f)%2),3,4,i===3?shade(c,.15):c);P(x+3,y-5,1,1,'#222');P(x+4,y-7,1,2,'#c84a3a')}
   else if(k==='tanuki'){const c=fl?'#fff':'#9a6a3a';P(x-4,y-9,8,9,c);P(x-4,y-10,2,1,c);P(x+2,y-10,2,1,c);P(x-3,y-7,6,2,'#3a2418');P(x-2,y-7,1,1,'#fff');P(x+1,y-7,1,1,'#fff');P(x-2,y-4,4,3,'#f0dcb0');P(x+(dir>0?-6:4),y-5,2,4,'#7a4a24')}
   else{const c=fl?'#fffbe0':'#f4f0ff';P(x-3,y-7,7,7,c);P(x-2,y-13,1,6,c);P(x+2,y-13,1,6,c);P(x-2,y-12,1,4,'#f8b8c8');P(x+2,y-12,1,4,'#f8b8c8');P(x-1,y-5,1,1,'#c8304a');P(x+2,y-5,1,1,'#c8304a')}
-  if(hpR!=null){P(x-4,y-13,8,1,'#00000080');P(x-4,y-13,Math.max(0,Math.round(8*hpR)),1,'#ef6a5a')}
+  if(hpR!=null)hpBar(x,y-(k==='usagi'?16:13),hpR,false);
 }
 
 /* ---------- display ---------- */
@@ -980,8 +981,8 @@ function drawWorld(t){
     if(h<46){const pine=h%3!==0;items.push({z:c+r,f:()=>g.drawImage(pine?pineSpr(h,se):roundTreeSpr(h,se),sx-12+(h%5)-2,sy+(pine?-26:-22))})}
     else if(h<52&&se!==3)items.push({z:c+r,f:()=>g.drawImage(mushSpr(),sx-7,sy+3)});
   }
-  S.advs.forEach(a=>{if(!inVillage(a)||a.state==='in')return;const sx=Math.round(sxOf(a.x,a.y)),sy=Math.round(syOf(a.x,a.y));if(!vis(sx,sy,20))return;items.push({z:a.x+a.y+.02,f:()=>drawAdv(a,t,sx,sy,['walk','fight','hunt','ret','call'].includes(a.state))})});
-  mobs.forEach(m=>{const sx=Math.round(sxOf(m.x,m.y)),sy=Math.round(syOf(m.x,m.y));if(vis(sx,sy,20))items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,sx,sy,t,m.flash>0,m.dir,m.hp<m.maxHp?m.hp/m.maxHp:null)})});
+  S.advs.forEach(a=>{if(!inVillage(a)||a.state==='in')return;const sx=Math.round(sxOf(a.x,a.y)),sy=Math.round(syOf(a.x,a.y));if(!vis(sx,sy,20))return;items.push({z:a.x+a.y+.02,f:()=>{drawAdv(a,t,sx,sy,['walk','fight','hunt','ret','call'].includes(a.state));if(a.state==='hunt'||a.state==='fight'||(a.hp<a.maxHp&&(a.state==='ret'||a.state==='call')))hpBar(sx,sy-14,a.hp/a.maxHp,true)}})});
+  mobs.forEach(m=>{const sx=Math.round(sxOf(m.x,m.y)),sy=Math.round(syOf(m.x,m.y));if(vis(sx,sy,20))items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,sx,sy,t,m.flash>0,m.dir,(m.hp<m.maxHp||m.aggro)?m.hp/m.maxHp:null)})});
   if(raid)raid.mons.forEach(m=>{if(m.hp>0)items.push({z:m.x+m.y+.02,f:()=>drawMon(m.k,Math.round(sxOf(m.x,m.y)),Math.round(syOf(m.x,m.y)),t,m.flash>0,m.dir,m.hp/m.maxHp)})});
   items.sort((p,q)=>p.z-q.z).forEach(i=>i.f());
   if(sel&&sel.k==='b'&&Math.floor(t*3)%2){g.drawImage(hlSpr('#46c8ff'),(sel.c-sel.r)*HW-HW,(sel.c+sel.r)*HH)}
